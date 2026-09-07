@@ -1,0 +1,65 @@
+[project]
+name = "recsys_platform"
+authors = [
+    {name = "Adam Pirog"},
+    {email = "pirog.adam@gmail.com"},
+]
+description = "End-to-end platform for building, evaluating, and serving personalized recommendation and ranking models."
+readme = "README.md"
+license = {text="MIT"}
+license-files = ["LICENSE"]
+dynamic = ["version"]
+requires-python = ">=3.13"
+dependencies = [
+
+    ]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pytest"
+]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["recsys_platform*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "recsys_platform.version.__version__"}
+
+[tool.pytest]
+minversion = "9.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+extend-select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "A",    # flake8-builtins
+    "N",    # pep8-naming
+    "C90",  # mccabe complexity
+    "UP",   # pyupgrade
+    "C4",   # flake8-comprehensions
+    "RUF",  # ruff-specific rules
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
