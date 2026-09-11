@@ -35,20 +35,13 @@ class TestingDataset(RecommendationDataset):
 
 
 @pytest.fixture(scope="session")
-def recommendation_dataset() -> TestingDataset:
+def testing_dataset() -> TestingDataset:
     train = pl.DataFrame(
         {
             "user_id": [1, 2, 3, 1, 2, 1],
             "item_id": [10, 10, 10, 20, 20, 30],
             "category_id": [1, 1, 1, 2, 2, 3],
-            "event_type": [
-                "view",
-                "view",
-                "purchase",
-                "view",
-                "cart",
-                "view",
-            ],
+            "event_type": ["view", "view", "purchase", "view", "cart", "view"],
             "event_time": [
                 datetime(2017, 11, 25, 10, 0),
                 datetime(2017, 11, 25, 11, 0),
