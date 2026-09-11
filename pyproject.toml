@@ -1,24 +1,29 @@
 [project]
-name = "recsys_platform"
+name = "recsys-platform"
 authors = [
-    {name = "Adam Pirog"},
-    {email = "pirog.adam@gmail.com"},
+    {name = "Adam Pirog", email = "pirog.adam@gmail.com"},
 ]
 description = "End-to-end platform for building, evaluating, and serving personalized recommendation and ranking models."
 readme = "README.md"
-license = {text="MIT"}
+license = "MIT"
 license-files = ["LICENSE"]
 dynamic = ["version"]
 requires-python = ">=3.13"
-dependencies = [
+dependencies = []
 
-    ]
+[project.optional-dependencies]
+data = [
+    "polars>=1.44",
+]
 
 [dependency-groups]
 dev = [
     "ruff",
-    "pytest"
+    "pytest>=9"
 ]
+
+[project.urls]
+homepage = "https://github.com/adampirog/recsys-platform"
 
 [build-system]
 requires = ["setuptools>=77"]
@@ -26,6 +31,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["recsys_platform*"]
+namespaces = false
 
 [tool.setuptools.dynamic]
 version = {attr = "recsys_platform.version.__version__"}
