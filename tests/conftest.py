@@ -1,5 +1,3 @@
-# tests/conftest.py
-
 from datetime import datetime
 
 import polars as pl
@@ -11,32 +9,17 @@ from recsys_platform.models.base import RecommendationDataset
 class TestingDataset(RecommendationDataset):
     """Recommendation dataset backed by in-memory Polars DataFrames."""
 
-    def __init__(
-        self,
-        train: pl.DataFrame,
-        valid: pl.DataFrame | None = None,
-        test: pl.DataFrame | None = None,
-    ) -> None:
-        self._train = train
-        self._valid = valid if valid is not None else train.clear()
-        self._test = test if test is not None else train.clear()
+    def __init__(self, data: pl.DataFrame) -> None:
+        self._data = data
 
     @property
-    def train(self) -> pl.LazyFrame:
-        return self._train.lazy()
-
-    @property
-    def valid(self) -> pl.LazyFrame:
-        return self._valid.lazy()
-
-    @property
-    def test(self) -> pl.LazyFrame:
-        return self._test.lazy()
+    def data(self) -> pl.LazyFrame:
+        return self._data.lazy()
 
 
 @pytest.fixture(scope="session")
 def testing_dataset() -> TestingDataset:
-    train = pl.DataFrame(
+    data = pl.DataFrame(
         {
             "user_id": [1, 2, 3, 1, 2, 1],
             "item_id": [10, 10, 10, 20, 20, 30],
@@ -53,4 +36,4 @@ def testing_dataset() -> TestingDataset:
         }
     )
 
-    return TestingDataset(train)
+    return TestingDataset(data)

@@ -12,7 +12,8 @@ from recsys_platform.models.base import (
 
 
 class PopularityRecommender(Recommender):
-    """Recommend globally popular items.
+    """
+    Recommend globally popular items.
 
     Item popularity is defined as the number of interactions with an item
     in the training dataset. Scores are normalized by the popularity of the
@@ -28,7 +29,7 @@ class PopularityRecommender(Recommender):
         """Fit the recommender using interaction counts from the training set."""
 
         popularity = (
-            data.train.group_by("item_id")
+            data.data.group_by("item_id")
             .len()
             .sort("len", descending=True)
             .with_columns(
@@ -48,10 +49,7 @@ class PopularityRecommender(Recommender):
 
         return self
 
-    def predict(
-        self,
-        requests: list[RecommendationRequest],
-    ) -> dict[int, list[Recommendation]]:
+    def predict(self, requests: list[RecommendationRequest]) -> dict[int, list[Recommendation]]:
         """Generate popularity-based recommendations."""
 
         return {request.user_id: self.popular_items[: request.k] for request in requests}
