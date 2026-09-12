@@ -105,8 +105,7 @@ def evaluate_multiple_optimized(
     """
     max_k = max(k_values)
 
-    relevant = np.asarray(tuple(set(y_true)), dtype=np.int64)
-    predicted = np.asarray(y_pred[:max_k], dtype=np.int64)
+    relevant, predicted = metrics_module._prepare_inputs(y_true, y_pred, max_k)
 
     if len(set(predicted.tolist())) != predicted.size:
         raise ValueError("y_pred must not contain duplicate item IDs.")

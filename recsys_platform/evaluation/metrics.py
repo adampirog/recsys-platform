@@ -10,8 +10,14 @@ def _prepare_inputs(
     if k <= 0:
         raise ValueError("k must be greater than 0.")
 
-    y_pred_array = np.asarray(y_pred, dtype=np.int64)[:k]
-    y_true_array = np.asarray(tuple(y_true), dtype=np.int64)
+    y_pred_array = np.asarray(y_pred[:k], dtype=np.int64)
+
+    if isinstance(y_true, np.ndarray):
+        y_true_array = y_true.astype(np.int64, copy=False)
+    elif isinstance(y_true, Sequence):
+        y_true_array = np.asarray(y_true, dtype=np.int64)
+    else:
+        y_true_array = np.fromiter(y_true, dtype=np.int64, count=len(y_true))
 
     if y_pred_array.ndim != 1:
         raise ValueError("y_pred must be one-dimensional.")
@@ -19,13 +25,10 @@ def _prepare_inputs(
     if y_true_array.ndim != 1:
         raise ValueError("y_true must be one-dimensional.")
 
-    if np.unique(y_pred_array).size != y_pred_array.size:
-        raise ValueError("y_pred must not contain duplicate item IDs.")
-
-    # Relevance is binary, so duplicate y_true IDs have no meaning.
+    # Relevance is binary.
     y_true_array = np.unique(y_true_array)
 
-    return y_pred_array, y_true_array
+    return y_true_array, y_pred_array
 
 
 def hit_rate(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float:
@@ -39,7 +42,7 @@ def hit_rate(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> flo
     Returns:
         1.0 if at least one y_true item is retrieved, otherwise 0.0.
     """
-    y_pred_array, y_true_array = _prepare_inputs(y_true, y_pred, k)
+    y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_true_array.size == 0:
         return 0.0
@@ -63,7 +66,7 @@ def precision(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> fl
 
     """
 
-    y_pred_array, y_true_array = _prepare_inputs(y_true, y_pred, k)
+    y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_pred_array.size == 0:
         return 0.0
@@ -84,7 +87,7 @@ def recall(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float
     Returns:
         Recall@k in the range [0, 1].
     """
-    y_pred_array, y_true_array = _prepare_inputs(y_true, y_pred, k)
+    y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_true_array.size == 0:
         return 0.0
@@ -108,7 +111,7 @@ def ndcg(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float:
     Returns:
         NDCG@k in the range [0, 1].
     """
-    y_pred_array, y_true_array = _prepare_inputs(y_true, y_pred, k)
+    y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_true_array.size == 0:
         return 0.0

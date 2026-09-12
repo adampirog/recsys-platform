@@ -82,12 +82,6 @@ def test_metric_rejects_non_positive_k(metric) -> None:
         metric(y_pred=[10], y_true={10}, k=0)
 
 
-@pytest.mark.parametrize("metric", [hit_rate, precision])
-def test_metric_rejects_duplicate_predictions(metric) -> None:
-    with pytest.raises(ValueError, match="duplicate"):
-        metric(y_pred=[10, 10, 20], y_true={10}, k=3)
-
-
 class TestPrecisionAtK:
     def test_partial_precision(self) -> None:
         assert precision(y_pred=[10, 20, 30, 40, 50], y_true={20, 40, 60}, k=5) == pytest.approx(

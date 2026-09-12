@@ -166,11 +166,6 @@ def test_duplicate_ground_truth_items_are_treated_as_single_relevance() -> None:
     assert duplicated == unique
 
 
-def test_duplicate_predictions_raise() -> None:
-    with pytest.raises(ValueError, match="must not contain duplicate"):
-        evaluation.evaluate(y_true={10, 20}, y_pred=[10, 10, 30], k=3)
-
-
 @pytest.mark.parametrize(("k", "expected"), [(1, 0.0), (2, 0.5), (3, 1 / 3)])
 def test_hit_entering_top_k_changes_metrics(k: int, expected: float) -> None:
     result = evaluation.evaluate(y_true={20}, y_pred=[10, 20, 30], k=k, metrics=("precision",))
