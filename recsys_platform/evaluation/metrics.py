@@ -1,23 +1,17 @@
-from collections.abc import Collection, Sequence
-
 import numpy as np
+from numpy.typing import ArrayLike
 
 
-def _prepare_inputs(
-    y_true: Collection[int], y_pred: Sequence[int], k: int
-) -> tuple[np.ndarray, np.ndarray]:
+ID_DTYPE = np.uint32
+
+
+def _prepare_inputs(y_true: ArrayLike, y_pred: ArrayLike, k: int) -> tuple[np.ndarray, np.ndarray]:
     """Convert metric inputs to validated NumPy arrays."""
     if k <= 0:
         raise ValueError("k must be greater than 0.")
 
-    y_pred_array = np.asarray(y_pred[:k], dtype=np.int64)
-
-    if isinstance(y_true, np.ndarray):
-        y_true_array = y_true.astype(np.int64, copy=False)
-    elif isinstance(y_true, Sequence):
-        y_true_array = np.asarray(y_true, dtype=np.int64)
-    else:
-        y_true_array = np.fromiter(y_true, dtype=np.int64, count=len(y_true))
+    y_pred_array = np.asarray(y_pred[:k], dtype=ID_DTYPE)  # type: ignore[index]
+    y_true_array = np.asarray(y_true, dtype=ID_DTYPE)
 
     if y_pred_array.ndim != 1:
         raise ValueError("y_pred must be one-dimensional.")
@@ -31,7 +25,7 @@ def _prepare_inputs(
     return y_true_array, y_pred_array
 
 
-def hit_rate(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float:
+def hit_rate(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
     """Return whether at least one y_true item occurs in the top-k.
 
     Args:
@@ -52,7 +46,7 @@ def hit_rate(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> flo
     return float(np.any(hits))
 
 
-def precision(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float:
+def precision(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
     """
     Return the fraction of top-k predictions that are relevant.
 
@@ -76,7 +70,7 @@ def precision(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> fl
     return float(np.count_nonzero(hits) / k)
 
 
-def recall(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float:
+def recall(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
     """Return the fraction of y_true items retrieved in the top-k.
 
     Args:
@@ -97,7 +91,7 @@ def recall(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float
     return float(np.count_nonzero(hits) / y_true_array.size)
 
 
-def ndcg(y_true: Collection[int], y_pred: Sequence[int], k: int = 10) -> float:
+def ndcg(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
     """Compute binary Normalized Discounted Cumulative Gain at k.
 
     Relevant items have gain 1 and non-relevant items gain 0. Relevant

@@ -1,7 +1,8 @@
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Collection, Iterable
 from functools import lru_cache
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from recsys_platform.evaluation import metrics as metrics_module
 
@@ -17,8 +18,8 @@ def _discounts(k: int) -> np.ndarray:
 
 
 def evaluate(
-    y_true: Collection[int],
-    y_pred: Sequence[int],
+    y_true: ArrayLike,
+    y_pred: ArrayLike,
     k: int = 10,
     metrics: Collection[str] = DEFAULT_METRICS,
 ) -> dict[str, float]:
@@ -48,8 +49,8 @@ def evaluate(
 
 
 def evaluate_multiple(
-    y_true: Collection[int],
-    y_pred: Sequence[int],
+    y_true: ArrayLike,
+    y_pred: ArrayLike,
     k_values: Iterable[int],
     metrics: Collection[str] = DEFAULT_METRICS,
 ) -> dict[int, dict[str, float]]:
@@ -81,8 +82,8 @@ def evaluate_multiple(
 
 
 def evaluate_multiple_optimized(
-    y_true: Collection[int],
-    y_pred: Sequence[int],
+    y_true: ArrayLike,
+    y_pred: ArrayLike,
     k_values: tuple[int, ...],
     metrics: tuple[str, ...],
 ) -> dict[int, dict[str, float]]:
@@ -107,8 +108,8 @@ def evaluate_multiple_optimized(
 
     relevant, predicted = metrics_module._prepare_inputs(y_true, y_pred, max_k)
 
-    if len(set(predicted.tolist())) != predicted.size:
-        raise ValueError("y_pred must not contain duplicate item IDs.")
+    if np.unique(predicted).size != predicted.size:
+        raise ValueError("Predictions contain duplicate item IDs.")
 
     hits = np.isin(predicted, relevant)
     cumulative_hits = np.cumsum(hits)
@@ -142,11 +143,8 @@ def evaluate_multiple_optimized(
             ideal_length = min(relevant.size, k)
 
             if effective_k and ideal_length:
-                assert cumulative_dcg is not None
-                assert cumulative_idcg is not None
-
-                dcg = cumulative_dcg[effective_k - 1]
-                idcg = cumulative_idcg[ideal_length - 1]
+                dcg = cumulative_dcg[effective_k - 1]  # type: ignore
+                idcg = cumulative_idcg[ideal_length - 1]  # type: ignore
 
                 values["ndcg"] = float(dcg / idcg)
             else:
