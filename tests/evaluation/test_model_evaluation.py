@@ -105,7 +105,7 @@ def test_result_behaves_like_mapping(evaluation_result) -> None:
 
 def test_result_save_json(evaluation_result, tmp_path) -> None:
     path = tmp_path / "result.json"
-    evaluation_result.save(path, save_format="json")
+    evaluation_result.save(path)
 
     with path.open(encoding="utf-8") as handle:
         saved = json.load(handle)
@@ -116,7 +116,7 @@ def test_result_save_json(evaluation_result, tmp_path) -> None:
 
 def test_result_save_str(evaluation_result, tmp_path) -> None:
     path = tmp_path / "result.txt"
-    evaluation_result.save(path, save_format="str")
+    evaluation_result.save(path)
 
     output = path.read_text(encoding="utf-8")
 

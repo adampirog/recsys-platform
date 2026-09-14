@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from recsys_platform.data import RecommenderDataset
 from recsys_platform.evaluation import EvaluationResult, evaluate_multiple
@@ -12,10 +12,14 @@ from recsys_platform.types import Float32Matrix, UInt32Matrix, UInt32Vector
 
 
 class RecommendationRequest(BaseModel):
-    """Batch request for top-k recommendations.
+    """Request top-k recommendations for a batch of users.
+
+    Users are processed in the order provided. Implementations of
+    ``Recommender.predict`` must preserve this order in the returned
+    recommendation rows.
 
     Attributes:
-        user_ids: IDs of users to generate recommendations for.
+        user_ids: One-dimensional array of user IDs.
         k: Maximum number of recommendations requested per user.
     """
 
@@ -26,13 +30,13 @@ class RecommendationRequest(BaseModel):
 
 
 class Recommendation(BaseModel):
-    """Batched ranked recommendations.
+    """Ranked recommendations for a batch of users.
 
-    Rows in ``item_ids`` and ``scores`` correspond positionally to
-    ``user_ids``.
+    Rows correspond positionally to users in the associated
+    ``RecommendationRequest``. For row ``i``, ``item_ids[i]`` contains the
+    ranked recommended item IDs and ``scores[i]`` contains their scores.
 
     Attributes:
-        user_ids: Users represented by each result row.
         item_ids: Ranked item IDs with shape
             ``(n_users, n_recommendations)``.
         scores: Recommendation scores with the same shape as ``item_ids``.
@@ -43,6 +47,13 @@ class Recommendation(BaseModel):
     item_ids: UInt32Matrix
     scores: Float32Matrix
 
+    @model_validator(mode="after")
+    def validate_shapes(self) -> Self:
+        if self.item_ids.shape != self.scores.shape:
+            raise ValueError("item_ids and scores must have identical shapes")
+
+        return self
+
 
 class Recommender[DatasetType: RecommenderDataset](ABC):
     @abstractmethod
@@ -50,8 +61,7 @@ class Recommender[DatasetType: RecommenderDataset](ABC):
 
     @abstractmethod
     def predict(self, request: RecommendationRequest) -> Recommendation:
-        """
-        Generate recommendations for a batch of users.
+        """Generate recommendations for a batch of users.
 
         Returned rows must preserve the order of ``request.user_ids``.
         """

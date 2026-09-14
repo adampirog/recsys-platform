@@ -11,8 +11,12 @@ from recsys_platform.types import UInt32Vector
 class TargetBatch(BaseModel):
     """Ground-truth relevance data for a batch of users.
 
-    ``relevant_items[i]`` contains the relevant item IDs for
-    ``user_ids[i]``.
+    Targets are aligned positionally: ``relevant_items[i]`` contains the
+    relevant item IDs for ``user_ids[i]``.
+
+    Attributes:
+        user_ids: One-dimensional array of user IDs in the batch.
+        relevant_items: Per-user arrays of relevant item IDs.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")

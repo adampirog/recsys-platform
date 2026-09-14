@@ -1,7 +1,6 @@
 import json
 from collections import UserDict
 from pathlib import Path
-from typing import Literal
 
 from prettytable import PrettyTable
 
@@ -32,12 +31,19 @@ class EvaluationResult(UserDict):
 
         return table.get_string()
 
-    def save(self, path: str | Path, *, save_format: Literal["str", "json"] = "str") -> None:
-        if save_format == "str":
+    def save(self, path: str | Path) -> None:
+        """Save the evaluation result as a text table or JSON document.
+
+        Args:
+            path: Destination file path.
+            Save format is inferred from the files extension (txt or json)
+        """
+        path = Path(path)
+        if path.suffix == ".txt":
             with open(path, "w", encoding="utf-8") as handle:
                 handle.write(str(self))
-        elif save_format == "json":
+        elif path.suffix == ".json":
             with open(path, "w", encoding="utf-8") as handle:
                 json.dump(self.data, handle, indent=2)
         else:
-            raise ValueError(f"Format '{save_format}' not supported")
+            raise ValueError(f"Format '{path.suffix}' not supported")

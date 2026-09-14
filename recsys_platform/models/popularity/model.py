@@ -25,6 +25,7 @@ class PopularityRecommender(Recommender[PopularityDataset]):
         self.scores = np.empty(0, dtype=np.float32)
 
     def fit(self, data: PopularityDataset) -> Self:
+        """Fit the global item ranking from interaction frequencies."""
         popularity = (
             data.data.group_by("item_id")
             .len()
@@ -45,6 +46,7 @@ class PopularityRecommender(Recommender[PopularityDataset]):
         return self
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
+        """Return the top globally popular items for each requested user."""
         n_recommendations = min(request.k, self.item_ids.size)
 
         item_ids = self.item_ids[:n_recommendations]
