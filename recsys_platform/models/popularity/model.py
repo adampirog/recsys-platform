@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Self
 
+import numpy as np
 import polars as pl
 
 from recsys_platform.models.base import Recommendation, RecommendationRequest, Recommender
@@ -8,7 +9,7 @@ from recsys_platform.models.base import Recommendation, RecommendationRequest, R
 from .dataset import PopularityDataset
 
 
-class PopularityRecommender(Recommender):
+class PopularityRecommender(Recommender[PopularityDataset]):
     """
     Recommend globally popular items.
 
@@ -20,15 +21,17 @@ class PopularityRecommender(Recommender):
     """
 
     def __init__(self) -> None:
-        self.popular_items: list[Recommendation] = []
+        self.item_ids = np.empty(0, dtype=np.uint32)
+        self.scores = np.empty(0, dtype=np.float32)
 
     def fit(self, data: PopularityDataset) -> Self:
-        """Fit the recommender using interaction counts from the training set."""
-
         popularity = (
             data.data.group_by("item_id")
             .len()
-            .sort("len", descending=True)
+            .sort(
+                ["len", "item_id"],
+                descending=[True, False],
+            )
             .with_columns(
                 (pl.col("len") / pl.col("len").max()).alias("score"),
             )
@@ -36,47 +39,40 @@ class PopularityRecommender(Recommender):
             .collect(engine="streaming")
         )
 
-        self.popular_items = [
-            Recommendation(
-                item_id=item_id,
-                score=score,
-            )
-            for item_id, score in popularity.iter_rows()
-        ]
+        self.item_ids = popularity["item_id"].to_numpy().astype(np.uint32, copy=False)
+        self.scores = popularity["score"].to_numpy().astype(np.float32, copy=False)
 
         return self
 
-    def predict(self, requests: list[RecommendationRequest]) -> dict[int, list[Recommendation]]:
-        """Generate popularity-based recommendations."""
+    def predict(self, request: RecommendationRequest) -> Recommendation:
+        n_recommendations = min(request.k, self.item_ids.size)
 
-        return {request.user_id: self.popular_items[: request.k] for request in requests}
+        item_ids = self.item_ids[:n_recommendations]
+        scores = self.scores[:n_recommendations]
+
+        batch_size = request.user_ids.size
+
+        return Recommendation(
+            user_ids=request.user_ids,
+            item_ids=np.broadcast_to(item_ids, (batch_size, n_recommendations)),
+            scores=np.broadcast_to(scores, (batch_size, n_recommendations)),
+        )
 
     def save(self, path: str | Path) -> None:
-        """Save the fitted model."""
-
+        """Serialize the fitted popularity model to disk."""
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
 
-        pl.DataFrame(
-            {
-                "item_id": [recommendation.item_id for recommendation in self.popular_items],
-                "score": [recommendation.score for recommendation in self.popular_items],
-            }
-        ).write_parquet(path / "popular_items.parquet")
+        np.savez(path / "model.npz", item_ids=self.item_ids, scores=self.scores)
 
     @classmethod
     def load(cls, path: str | Path) -> Self:
-        """Load a previously saved model"""
+        """Load a serialized popularity model from disk."""
+        model_path = Path(path) / "model.npz"
 
-        items = pl.read_parquet(Path(path) / "popular_items.parquet")
-
-        model = cls()
-        model.popular_items = [
-            Recommendation(
-                item_id=item_id,
-                score=score,
-            )
-            for item_id, score in items.iter_rows()
-        ]
+        with np.load(model_path, allow_pickle=False) as state:
+            model = cls()
+            model.item_ids = state["item_ids"].astype(np.uint32, copy=False)
+            model.scores = state["scores"].astype(np.float32, copy=False)
 
         return model

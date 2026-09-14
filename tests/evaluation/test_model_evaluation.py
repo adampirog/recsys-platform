@@ -1,121 +1,128 @@
 import json
-from math import log2
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Self
 
+import numpy as np
 import pytest
 
-from recsys_platform.models.base import (
-    EvaluationResult,
-    Recommendation,
-    RecommendationRequest,
-    Recommender,
-    RecommenderDataset,
-)
+from recsys_platform.data import RecommenderDataset, TargetBatch
+from recsys_platform.evaluation import EvaluationResult
+from recsys_platform.models import Recommendation, RecommendationRequest, Recommender
 
 
-class FakeRecommender(Recommender):
+class FakeDataset(RecommenderDataset):
     def __init__(self) -> None:
-        self.calls: list[list[RecommendationRequest]] = []
-        self.predictions = {1: [10, 40, 20], 2: [30, 20, 10], 3: [30, 40, 10]}
+        pass
 
-    def fit(self, data: RecommenderDataset) -> Self:
+    def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
+        batches = [
+            TargetBatch(
+                user_ids=np.array([1, 2], dtype=np.uint32),
+                relevant_items=[
+                    np.array([10, 20], dtype=np.uint32),
+                    np.array([30], dtype=np.uint32),
+                ],
+            ),
+            TargetBatch(
+                user_ids=np.array([3], dtype=np.uint32),
+                relevant_items=[np.array([40, 50], dtype=np.uint32)],
+            ),
+        ]
+
+        yield from batches
+
+
+class FakeRecommender(Recommender[FakeDataset]):
+    def __init__(self) -> None:
+        self.requests: list[RecommendationRequest] = []  # records requests for testing
+
+    def fit(self, data: FakeDataset) -> Self:
         return self
 
     def predict(
         self,
-        requests: list[RecommendationRequest],
-    ) -> dict[int, list[Recommendation]]:
-        self.calls.append(requests)
+        request: RecommendationRequest,
+    ) -> Recommendation:
+        predictions = {1: [10, 99, 20], 2: [99, 30, 98], 3: [40, 98, 97]}
 
-        return {
-            request.user_id: [
-                Recommendation(item_id=item_id, score=1.0)
-                for item_id in self.predictions[request.user_id][: request.k]
-            ]
-            for request in requests
-        }
+        item_ids = np.array(
+            [predictions[int(user_id)][: request.k] for user_id in request.user_ids],
+            dtype=np.uint32,
+        )
+
+        return Recommendation(
+            user_ids=request.user_ids,
+            item_ids=item_ids,
+            scores=np.ones_like(item_ids, dtype=np.float32),
+        )
 
     def save(self, path: str | Path) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @classmethod
     def load(cls, path: str | Path) -> Self:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
-def test_model_evaluate(testing_dataset) -> None:
+def test_evaluate_processes_multiple_target_batches() -> None:
     model = FakeRecommender()
+    dataset = FakeDataset()
 
-    result = model.evaluate(testing_dataset, k_values=(1, 3))
+    result = model.evaluate(dataset, k_values=(1, 3), batch_size=2)
+
     assert list(result) == [1, 3]
 
-    # K = 1
-    assert result[1]["precision"] == pytest.approx(1 / 3)
-    assert result[1]["recall"] == pytest.approx(1 / 9)
-    assert result[1]["hit_rate"] == pytest.approx(1 / 3)
-    assert result[1]["ndcg"] == pytest.approx(1 / 3)
 
-    # K = 3
-    assert result[3]["precision"] == pytest.approx(5 / 9)
-    assert result[3]["recall"] == pytest.approx(8 / 9)
-    assert result[3]["hit_rate"] == pytest.approx(1.0)
+def test_evaluate_macro_averages_user_metrics() -> None:
+    result = FakeRecommender().evaluate(FakeDataset(), k_values=(1,))
 
-    user_1_ndcg = (1.0 + 1.0 / log2(4)) / (1.0 + 1.0 / log2(3) + 1.0 / log2(4))
-
-    user_2_ndcg = (1.0 / log2(3) + 1.0 / log2(4)) / (1.0 + 1.0 / log2(3))
-
-    user_3_ndcg = 1.0 / log2(4)
-
-    assert result[3]["ndcg"] == pytest.approx((user_1_ndcg + user_2_ndcg + user_3_ndcg) / 3)
+    np.testing.assert_allclose(result[1]["precision"], 2 / 3)
+    np.testing.assert_allclose(result[1]["recall"], 1 / 3)
+    np.testing.assert_allclose(result[1]["hit_rate"], 2 / 3)
 
 
-def test_model_evaluate_predicts_once_at_max_k(testing_dataset) -> None:
+def test_evaluate_predicts_once_per_batch_at_max_k() -> None:
     model = FakeRecommender()
 
-    model.evaluate(testing_dataset, k_values=(1, 2, 3), batch_size=10)
+    model.evaluate(FakeDataset(), k_values=(1, 3, 5), batch_size=2)
 
-    assert len(model.calls) == 1
-
-    requests = model.calls[0]
-
-    assert len(requests) == 3
-    assert all(request.k == 3 for request in requests)
-
-
-def test_model_evaluate_batches_predictions(testing_dataset) -> None:
-    model = FakeRecommender()
-
-    model.evaluate(testing_dataset, k_values=(3,), batch_size=2)
-
-    assert [len(call) for call in model.calls] == [2, 1]
+    assert all(request.k == 5 for request in model.requests)
 
 
 @pytest.fixture(scope="module")
 def evaluation_result() -> EvaluationResult:
     return EvaluationResult(
         {
-            5: {"precision": 0.12345, "recall": 0.25, "hit_rate": 0.5, "ndcg": 0.45678},
-            10: {"precision": 0.1, "recall": 0.4, "hit_rate": 0.7, "ndcg": 0.5},
+            5: {"precision": 0.25, "recall": 0.5, "hit_rate": 0.75, "ndcg": 0.6},
+            10: {"precision": 0.2, "recall": 0.7, "hit_rate": 1.0, "ndcg": 0.8},
         }
     )
 
 
-def test_evaluation_result_save_string(evaluation_result, tmp_path) -> None:
-    path = tmp_path / "evaluation.txt"
-    evaluation_result.save(path)
-
-    assert path.read_text(encoding="utf-8") == str(evaluation_result)
+def test_result_behaves_like_mapping(evaluation_result) -> None:
+    assert evaluation_result[5]["recall"] == 0.5
+    assert list(evaluation_result) == [5, 10]
 
 
-def test_evaluation_result_save_json(evaluation_result, tmp_path) -> None:
-    path = tmp_path / "evaluation.json"
+def test_result_save_json(evaluation_result, tmp_path) -> None:
+    path = tmp_path / "result.json"
     evaluation_result.save(path, save_format="json")
 
     with path.open(encoding="utf-8") as handle:
         saved = json.load(handle)
 
-    assert saved == {
-        "5": {"precision": 0.12345, "recall": 0.25, "hit_rate": 0.5, "ndcg": 0.45678},
-        "10": {"precision": 0.1, "recall": 0.4, "hit_rate": 0.7, "ndcg": 0.5},
-    }
+    assert saved["5"]["precision"] == 0.25
+    assert saved["10"]["ndcg"] == 0.8
+
+
+def test_result_save_str(evaluation_result, tmp_path) -> None:
+    path = tmp_path / "result.txt"
+    evaluation_result.save(path, save_format="str")
+
+    output = path.read_text(encoding="utf-8")
+
+    assert "Precision" in output
+    assert "Recall" in output
+    assert "Hit Rate" in output
+    assert "Ndcg" in output

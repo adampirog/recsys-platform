@@ -1,4 +1,4 @@
-from .base import RecommenderDataset
+from .base import RecommenderDataset, TargetBatch
 
 
-__all__ = ["RecommenderDataset"]
+__all__ = ["RecommenderDataset", "TargetBatch"]

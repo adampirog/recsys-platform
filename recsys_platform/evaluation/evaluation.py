@@ -4,7 +4,7 @@ from functools import lru_cache
 import numpy as np
 from numpy.typing import ArrayLike
 
-from recsys_platform.evaluation import metrics as metrics_module
+from . import metrics as metrics_module
 
 
 DEFAULT_METRICS = ("precision", "recall", "hit_rate", "ndcg")
@@ -118,9 +118,6 @@ def evaluate_multiple_optimized(
         discounts = _discounts(max_k)
         cumulative_dcg = np.cumsum(hits * discounts[: predicted.size])
         cumulative_idcg = np.cumsum(discounts)
-    else:
-        cumulative_dcg = None
-        cumulative_idcg = None
 
     result: dict[int, dict[str, float]] = {}
 
