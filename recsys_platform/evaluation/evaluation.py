@@ -108,9 +108,6 @@ def evaluate_multiple_optimized(
 
     relevant, predicted = metrics_module._prepare_inputs(y_true, y_pred, max_k)
 
-    if np.unique(predicted).size != predicted.size:
-        raise ValueError("Predictions contain duplicate item IDs.")
-
     hits = np.isin(predicted, relevant)
     cumulative_hits = np.cumsum(hits)
 

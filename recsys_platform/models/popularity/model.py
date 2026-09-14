@@ -53,7 +53,6 @@ class PopularityRecommender(Recommender[PopularityDataset]):
         batch_size = request.user_ids.size
 
         return Recommendation(
-            user_ids=request.user_ids,
             item_ids=np.broadcast_to(item_ids, (batch_size, n_recommendations)),
             scores=np.broadcast_to(scores, (batch_size, n_recommendations)),
         )

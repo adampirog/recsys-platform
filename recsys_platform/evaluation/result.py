@@ -18,6 +18,9 @@ class EvaluationResult(UserDict):
     """
 
     def __str__(self) -> str:
+        if not self.data:
+            return super().__str__()
+
         metric_names = sorted(next(iter(self.values())).keys())
         table = PrettyTable()
 

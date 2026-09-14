@@ -34,7 +34,7 @@ def popularity_dataset() -> MemoryDataset:
 def test_fit_orders_items_by_popularity(popularity_dataset) -> None:
     model = PopularityRecommender().fit(popularity_dataset)
 
-    npt.assert_array_equal(model.item_ids, np.array([10, 20, 30, 40], dtype=np.int32))
+    npt.assert_array_equal(model.item_ids, np.array([10, 20, 30, 40], dtype=np.uint32))
 
 
 def test_fit_normalizes_popularity_scores(popularity_dataset) -> None:
@@ -56,15 +56,6 @@ def test_predict_returns_requested_top_k(popularity_dataset) -> None:
     npt.assert_allclose(result.scores, expected_scores)
 
 
-def test_predict_preserves_user_ids(popularity_dataset) -> None:
-    model = PopularityRecommender().fit(popularity_dataset)
-
-    user_ids = np.array([42, 7, 99], dtype=np.uint32)
-    result = model.predict(RecommendationRequest(user_ids=user_ids, k=2))
-
-    npt.assert_array_equal(result.user_ids, user_ids)
-
-
 def test_predict_caps_k_at_catalog_size(popularity_dataset) -> None:
     model = PopularityRecommender().fit(popularity_dataset)
 
@@ -81,7 +72,6 @@ def test_predict_supports_empty_user_batch(popularity_dataset) -> None:
 
     result = model.predict(RecommendationRequest(user_ids=np.empty(0, dtype=np.uint32), k=3))
 
-    assert result.user_ids.shape == (0,)
     assert result.item_ids.shape == (0, 3)
     assert result.scores.shape == (0, 3)
 
@@ -110,7 +100,6 @@ def test_loaded_model_produces_same_predictions(popularity_dataset, tmp_path) ->
     expected = original.predict(request)
     actual = loaded.predict(request)
 
-    npt.assert_array_equal(actual.user_ids, expected.user_ids)
     npt.assert_array_equal(actual.item_ids, expected.item_ids)
     npt.assert_allclose(actual.scores, expected.scores)
 

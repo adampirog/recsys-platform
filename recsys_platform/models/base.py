@@ -1,28 +1,47 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Self
+from typing import Annotated, Self
 
-import numpy as np
-from numpy.typing import NDArray
+from pydantic import BaseModel, ConfigDict, Field
 
 from recsys_platform.data import RecommenderDataset
 from recsys_platform.evaluation import EvaluationResult, evaluate_multiple
+from recsys_platform.types import Float32Matrix, UInt32Matrix, UInt32Vector
 
 
-@dataclass(frozen=True, slots=True)
-class Recommendation:
-    user_ids: NDArray[np.uint32]
-    item_ids: NDArray[np.uint32]  # shape: (n_users, n_recommendations)
-    scores: NDArray[np.float32]  # shape: (n_users, n_recommendations)
+class RecommendationRequest(BaseModel):
+    """Batch request for top-k recommendations.
+
+    Attributes:
+        user_ids: IDs of users to generate recommendations for.
+        k: Maximum number of recommendations requested per user.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+
+    user_ids: UInt32Vector
+    k: Annotated[int, Field(gt=0, strict=True)] = 20
 
 
-@dataclass(frozen=True, slots=True)
-class RecommendationRequest:
-    user_ids: NDArray[np.uint32]
-    k: int = 20
+class Recommendation(BaseModel):
+    """Batched ranked recommendations.
+
+    Rows in ``item_ids`` and ``scores`` correspond positionally to
+    ``user_ids``.
+
+    Attributes:
+        user_ids: Users represented by each result row.
+        item_ids: Ranked item IDs with shape
+            ``(n_users, n_recommendations)``.
+        scores: Recommendation scores with the same shape as ``item_ids``.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+
+    item_ids: UInt32Matrix
+    scores: Float32Matrix
 
 
 class Recommender[DatasetType: RecommenderDataset](ABC):
@@ -30,7 +49,12 @@ class Recommender[DatasetType: RecommenderDataset](ABC):
     def fit(self, data: DatasetType) -> Self: ...
 
     @abstractmethod
-    def predict(self, request: RecommendationRequest) -> Recommendation: ...
+    def predict(self, request: RecommendationRequest) -> Recommendation:
+        """
+        Generate recommendations for a batch of users.
+
+        Returned rows must preserve the order of ``request.user_ids``.
+        """
 
     @abstractmethod
     def save(self, path: str | Path) -> None: ...

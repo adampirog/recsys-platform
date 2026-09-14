@@ -22,6 +22,9 @@ def _prepare_inputs(y_true: ArrayLike, y_pred: ArrayLike, k: int) -> tuple[np.nd
     # Relevance is binary.
     y_true_array = np.unique(y_true_array)
 
+    if np.unique(y_pred_array).size != y_pred_array.size:
+        raise ValueError("Predictions contain duplicate item IDs.")
+
     return y_true_array, y_pred_array
 
 
@@ -56,7 +59,7 @@ def precision(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
         k: Number of highest-ranked predictions to consider.
 
     Returns:
-        Recall@k in the range [0, 1].
+        Precision@k in the range [0, 1].
 
     """
 

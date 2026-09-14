@@ -44,18 +44,15 @@ class FakeRecommender(Recommender[FakeDataset]):
         self,
         request: RecommendationRequest,
     ) -> Recommendation:
-        predictions = {1: [10, 99, 20], 2: [99, 30, 98], 3: [40, 98, 97]}
+        self.requests.append(request)
 
+        predictions = {1: [10, 99, 20], 2: [99, 30, 98], 3: [40, 98, 97]}
         item_ids = np.array(
             [predictions[int(user_id)][: request.k] for user_id in request.user_ids],
             dtype=np.uint32,
         )
 
-        return Recommendation(
-            user_ids=request.user_ids,
-            item_ids=item_ids,
-            scores=np.ones_like(item_ids, dtype=np.float32),
-        )
+        return Recommendation(item_ids=item_ids, scores=np.ones_like(item_ids, dtype=np.float32))
 
     def save(self, path: str | Path) -> None:
         raise NotImplementedError
@@ -87,6 +84,7 @@ def test_evaluate_predicts_once_per_batch_at_max_k() -> None:
 
     model.evaluate(FakeDataset(), k_values=(1, 3, 5), batch_size=2)
 
+    assert len(model.requests) == 2
     assert all(request.k == 5 for request in model.requests)
 
 
