@@ -8,9 +8,9 @@ import pytest
 from recsys_platform.models.base import (
     EvaluationResult,
     Recommendation,
-    RecommendationDataset,
     RecommendationRequest,
     Recommender,
+    RecommenderDataset,
 )
 
 
@@ -19,7 +19,7 @@ class FakeRecommender(Recommender):
         self.calls: list[list[RecommendationRequest]] = []
         self.predictions = {1: [10, 40, 20], 2: [30, 20, 10], 3: [30, 40, 10]}
 
-    def fit(self, data: RecommendationDataset) -> Self:
+    def fit(self, data: RecommenderDataset) -> Self:
         return self
 
     def predict(

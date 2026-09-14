@@ -3,10 +3,10 @@ from datetime import datetime
 import polars as pl
 import pytest
 
-from recsys_platform.models.base import RecommendationDataset
+from recsys_platform.models.base import RecommenderDataset
 
 
-class TestingDataset(RecommendationDataset):
+class TestingDataset(RecommenderDataset):
     """Recommendation dataset backed by in-memory Polars DataFrames."""
 
     def __init__(self, data: pl.DataFrame) -> None:

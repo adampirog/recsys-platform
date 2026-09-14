@@ -85,7 +85,7 @@ def evaluate_multiple_optimized(
     y_true: ArrayLike,
     y_pred: ArrayLike,
     k_values: tuple[int, ...],
-    metrics: tuple[str, ...],
+    metrics: tuple[str, ...] = tuple(OPTIMIZED_METRICS),
 ) -> dict[int, dict[str, float]]:
     """
     Efficiently evaluate compatible ranking metrics at multiple cutoffs.

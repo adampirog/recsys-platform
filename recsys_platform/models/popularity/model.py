@@ -3,12 +3,9 @@ from typing import Self
 
 import polars as pl
 
-from recsys_platform.models.base import (
-    Recommendation,
-    RecommendationDataset,
-    RecommendationRequest,
-    Recommender,
-)
+from recsys_platform.models.base import Recommendation, RecommendationRequest, Recommender
+
+from .dataset import PopularityDataset
 
 
 class PopularityRecommender(Recommender):
@@ -25,7 +22,7 @@ class PopularityRecommender(Recommender):
     def __init__(self) -> None:
         self.popular_items: list[Recommendation] = []
 
-    def fit(self, data: RecommendationDataset) -> Self:
+    def fit(self, data: PopularityDataset) -> Self:
         """Fit the recommender using interaction counts from the training set."""
 
         popularity = (

@@ -1,24 +1,15 @@
-import json
 from abc import ABC, abstractmethod
-from collections import UserDict, defaultdict
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Self
+from typing import Self
 
 import polars as pl
-from prettytable import PrettyTable
 
+from recsys_platform.data import RecommenderDataset
 from recsys_platform.evaluation.evaluation import evaluate_multiple
-
-
-class RecommendationDataset:
-    def __init__(self, path: Path | str) -> None:
-        self.path = Path(path)
-
-    @property
-    def data(self) -> pl.LazyFrame:
-        return pl.scan_parquet(self.path)
+from recsys_platform.evaluation.result import EvaluationResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,43 +24,9 @@ class RecommendationRequest:
     k: int = 20
 
 
-class EvaluationResult(UserDict):
-    """
-    Recommendation metrics evaluated at multiple ranking cutoffs.
-
-    Maps each cutoff ``k`` to a dictionary of metric names and their
-    corresponding values.
-
-    Example:
-        ``result[10]["recall"]`` returns Recall@10.
-    """
-
-    def __str__(self) -> str:
-        metric_names = sorted(next(iter(self.values())).keys())
-        table = PrettyTable()
-
-        table.field_names = ["K"] + [item.replace("_", " ").title() for item in metric_names]
-        table.align["K"] = "r"
-
-        for k, metrics in self.items():
-            table.add_row([k] + [f"{metrics[name]:.4f}" for name in metric_names])
-
-        return table.get_string()
-
-    def save(self, path: str | Path, *, save_format: Literal["str", "json"] = "str") -> None:
-        if save_format == "str":
-            with open(path, "w", encoding="utf-8") as handle:
-                handle.write(str(self))
-        elif save_format == "json":
-            with open(path, "w", encoding="utf-8") as handle:
-                json.dump(self.data, handle, indent=2)
-        else:
-            raise ValueError(f"Format '{save_format}' not supported")
-
-
 class Recommender(ABC):
     @abstractmethod
-    def fit(self, data: RecommendationDataset) -> Self: ...
+    def fit(self, data: RecommenderDataset) -> Self: ...
 
     @abstractmethod
     def predict(self, requests: list[RecommendationRequest]) -> dict[int, list[Recommendation]]: ...
@@ -103,7 +60,7 @@ class Recommender(ABC):
 
     def evaluate(
         self,
-        data: RecommendationDataset,
+        data: RecommenderDataset,
         *,
         k_values: Iterable[int] = (5, 10, 20),
         batch_size: int = 10_000,

@@ -1,7 +1,7 @@
 import pytest
 
 from recsys_platform.models.base import RecommendationRequest
-from recsys_platform.models.popularity_model import PopularityRecommender
+from recsys_platform.models.popularity import PopularityRecommender
 
 
 def test_fit_orders_items_by_popularity(testing_dataset):
