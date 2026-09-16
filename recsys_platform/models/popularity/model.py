@@ -2,14 +2,12 @@ from pathlib import Path
 from typing import Self
 
 import numpy as np
-import polars as pl
 
 from recsys_platform.models.base import Recommendation, RecommendationRequest, Recommender
+from recsys_platform.types import Float32Matrix, UInt32Vector
 
-from .dataset import PopularityDataset
 
-
-class PopularityRecommender(Recommender[PopularityDataset]):
+class PopularityRecommender(Recommender):
     """
     Recommend globally popular items.
 
@@ -20,33 +18,13 @@ class PopularityRecommender(Recommender[PopularityDataset]):
     The model is non-personalized: every user receives the same ranked list.
     """
 
-    def __init__(self) -> None:
-        self.item_ids = np.empty(0, dtype=np.uint32)
-        self.scores = np.empty(0, dtype=np.float32)
-
-    def fit(self, data: PopularityDataset) -> Self:
-        """Fit the global item ranking from interaction frequencies."""
-        popularity = (
-            data.data.group_by("item_id")
-            .len()
-            .sort(
-                ["len", "item_id"],
-                descending=[True, False],
-            )
-            .with_columns(
-                (pl.col("len") / pl.col("len").max()).alias("score"),
-            )
-            .select("item_id", "score")
-            .collect(engine="streaming")
-        )
-
-        self.item_ids = popularity["item_id"].to_numpy().astype(np.uint32, copy=False)
-        self.scores = popularity["score"].to_numpy().astype(np.float32, copy=False)
-
-        return self
+    def __init__(self, item_ids: UInt32Vector, scores: Float32Matrix) -> None:
+        self.item_ids = item_ids
+        self.scores = scores
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
         """Return the top globally popular items for each requested user."""
+
         n_recommendations = min(request.k, self.item_ids.size)
 
         item_ids = self.item_ids[:n_recommendations]
@@ -72,8 +50,9 @@ class PopularityRecommender(Recommender[PopularityDataset]):
         model_path = Path(path) / "model.npz"
 
         with np.load(model_path, allow_pickle=False) as state:
-            model = cls()
-            model.item_ids = state["item_ids"].astype(np.uint32, copy=False)
-            model.scores = state["scores"].astype(np.float32, copy=False)
+            model = cls(
+                item_ids=state["item_ids"].astype(np.uint32, copy=False),
+                scores=state["scores"].astype(np.float32, copy=False),
+            )
 
         return model

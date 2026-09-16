@@ -14,7 +14,7 @@ def test_request_rejects_non_positive_k(k: int) -> None:
 
 def test_request_rejects_invalid_user_ids() -> None:
     with pytest.raises(ValidationError):
-        RecommendationRequest(user_ids=np.array([1], dtype=np.int64))
+        RecommendationRequest(user_ids=np.array([1], dtype=np.int64))  # type: ignore
 
 
 def test_recommendation_rejects_mismatched_shapes() -> None:

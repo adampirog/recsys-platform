@@ -55,10 +55,7 @@ class Recommendation(BaseModel):
         return self
 
 
-class Recommender[DatasetType: RecommenderDataset](ABC):
-    @abstractmethod
-    def fit(self, data: DatasetType) -> Self: ...
-
+class Recommender(ABC):
     @abstractmethod
     def predict(self, request: RecommendationRequest) -> Recommendation:
         """Generate recommendations for a batch of users.
@@ -73,8 +70,17 @@ class Recommender[DatasetType: RecommenderDataset](ABC):
     @abstractmethod
     def load(cls, path: str | Path) -> Self: ...
 
+
+class Trainer[DatasetType: RecommenderDataset, RecommenderType: Recommender](ABC):
+    """Train and evaluate a model-specific recommender."""
+
+    @abstractmethod
+    def fit(self, data: DatasetType) -> RecommenderType:
+        """Fit a recommender from the training dataset."""
+
     def evaluate(
         self,
+        model: RecommenderType,
         data: DatasetType,
         *,
         k_values: Iterable[int] = (5, 10, 20),
@@ -86,7 +92,7 @@ class Recommender[DatasetType: RecommenderDataset](ABC):
 
         n_users = 0
         for targets in data.iter_targets(batch_size):
-            recommendations = self.predict(
+            recommendations = model.predict(
                 RecommendationRequest(user_ids=targets.user_ids, k=max_k)
             )
 
