@@ -4,7 +4,8 @@ import numpy as np
 import polars as pl
 import pytest
 
-from recsys_platform.models.popularity import PopularityDataset, PopularityRecommender
+from recsys_platform.models.popularity import PopularityRecommender
+from recsys_platform.models.popularity.dataset import PopularityDataset
 
 
 @pytest.fixture(scope="module")

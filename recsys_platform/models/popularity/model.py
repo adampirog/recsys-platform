@@ -4,7 +4,7 @@ from typing import Self
 import numpy as np
 
 from recsys_platform.models.base import Recommendation, RecommendationRequest, Recommender
-from recsys_platform.types import Float32Matrix, UInt32Vector
+from recsys_platform.types import Float32Vector, UInt32Vector
 
 
 class PopularityRecommender(Recommender):
@@ -18,9 +18,12 @@ class PopularityRecommender(Recommender):
     The model is non-personalized: every user receives the same ranked list.
     """
 
-    def __init__(self, item_ids: UInt32Vector, scores: Float32Matrix) -> None:
+    def __init__(self, item_ids: UInt32Vector, scores: Float32Vector) -> None:
         self.item_ids = item_ids
         self.scores = scores
+
+        if item_ids.shape != scores.shape:
+            raise ValueError("item_ids and scores must have identical shapes.")
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
         """Return the top globally popular items for each requested user."""

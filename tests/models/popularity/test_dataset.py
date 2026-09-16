@@ -1,7 +1,7 @@
 import numpy as np
 import polars as pl
 
-from recsys_platform.models.popularity import PopularityDataset
+from recsys_platform.models.popularity.dataset import PopularityDataset
 
 
 def test_data_returns_parquet_as_lazy_frame(popularity_dataset: PopularityDataset) -> None:
