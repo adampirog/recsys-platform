@@ -3,7 +3,7 @@ from typing import Self
 
 import numpy as np
 
-from recsys_platform.models.base import Recommendation, RecommendationRequest, Recommender
+from recsys_platform.models import Recommendation, RecommendationRequest, Recommender
 from recsys_platform.types import Float32Vector, UInt32Vector
 
 
