@@ -49,3 +49,20 @@ class HealthResponse(BaseModel):
     version: str
     models_available: int
     models_loaded: int
+
+
+class ModelRefreshResponse(BaseModel):
+    """Result of refreshing the model artifact catalog."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    added: list[str]
+
+
+class ModelLoadResponse(BaseModel):
+    """Current loading state of a serving model."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model_id: str
+    loaded: bool

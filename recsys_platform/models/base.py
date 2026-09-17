@@ -94,7 +94,8 @@ class Recommender(ABC):
 
     @classmethod
     def load(cls, path: str | Path) -> Self:
-        """Load a serialized popularity model from disk."""
+        """Load a serialized Recommender from disk."""
+
         path = Path(path)
         manifest = ModelManifest.load(path / "MANIFEST.json")
 

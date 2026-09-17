@@ -18,9 +18,7 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
     """Registry of lazily importable recommender implementations.
 
     Model families are registered using import specifications rather than
-    importing their implementations eagerly. The corresponding Python class
-    is imported and validated only when first requested, then cached for
-    subsequent lookups.
+    importing their implementations eagerly.
 
     Registry access is thread-safe.
     """
@@ -46,16 +44,6 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
         spec = ModelSpec(module=module, class_name=class_name)
 
         with self._lock:
-            existing = self._specs.get(model_family)
-
-            if existing is not None:
-                if existing != spec:
-                    raise ValueError(
-                        f"Model family {model_family!r} is already "
-                        "registered with a different implementation."
-                    )
-                return
-
             self._specs[model_family] = spec
 
     def __getitem__(self, model_family: str) -> type[Recommender]:

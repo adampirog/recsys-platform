@@ -36,7 +36,7 @@ Example:
     artifacts::
 
         python -m recsys_platform.serving.app \\
-            --model-path ./artifacts \\
+            ./artifacts \\
             --host 0.0.0.0 \\
             --port 8000
 """
@@ -53,13 +53,20 @@ from recsys_platform.version import __version__
 
 from .manager import ModelManager
 from .registry import create_default_registry
-from .schema import HealthResponse, ModelResponse, RecommendationRequest, RecommendationResponse
+from .schema import (
+    HealthResponse,
+    ModelLoadResponse,
+    ModelRefreshResponse,
+    ModelResponse,
+    RecommendationRequest,
+    RecommendationResponse,
+)
 
 
 API_VERSION = "0.1.0"
 
 
-def create_app(manager: ModelManager) -> FastAPI:
+def create_app(manager: ModelManager, model_path: Path) -> FastAPI:
     """Create the HTTP API backed by the provided model manager.
 
     Args:
@@ -70,6 +77,7 @@ def create_app(manager: ModelManager) -> FastAPI:
         Configured FastAPI application.
     """
     app = FastAPI(title="RecSys Platform", version=API_VERSION)
+    model_path = model_path.resolve()
 
     @app.get("/health")
     def health() -> HealthResponse:
@@ -86,9 +94,7 @@ def create_app(manager: ModelManager) -> FastAPI:
         """List models currently available to the serving process."""
         return [
             ModelResponse(
-                model_id=model.model_id,
-                model_family=model.model_family,
-                loaded=model.loaded,
+                model_id=model.model_id, model_family=model.model_family, loaded=model.loaded
             )
             for model in manager.available_models()
         ]
@@ -99,10 +105,7 @@ def create_app(manager: ModelManager) -> FastAPI:
         try:
             model = manager.load(model_id)
         except KeyError as exc:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Model {model_id!r} not found.",
-            ) from exc
+            raise HTTPException(status_code=404, detail=f"Model {model_id!r} not found.") from exc
 
         user_ids = np.asarray(request.user_ids, dtype=np.uint32)
 
@@ -114,6 +117,35 @@ def create_app(manager: ModelManager) -> FastAPI:
             item_ids=recommendations.item_ids.tolist(),
             scores=recommendations.scores.tolist(),
         )
+
+    @app.post("/admin/models/refresh")
+    def refresh_models() -> ModelRefreshResponse:
+        """Discover model artifacts added since the previous scan."""
+        added = manager.discover(model_path)
+
+        return ModelRefreshResponse(added=list(added))
+
+    @app.post("/admin/models/{model_id}/load")
+    def load_model(model_id: str) -> ModelLoadResponse:
+        """Load a model into memory before it receives inference traffic."""
+        try:
+            manager.load(model_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=f"Model {model_id!r} not found.") from exc
+
+        return ModelLoadResponse(model_id=model_id, loaded=True)
+
+    @app.delete("/admin/models/{model_id}/load")
+    def unload_model(
+        model_id: str,
+    ) -> ModelLoadResponse:
+        """Unload model state while keeping the artifact registered."""
+        try:
+            manager.unload(model_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=f"Model {model_id!r} not found.") from exc
+
+        return ModelLoadResponse(model_id=model_id, loaded=False)
 
     return app
 
@@ -140,7 +172,7 @@ def main() -> None:
     manager = ModelManager(registry)
     manager.discover(args.model_path)
 
-    app = create_app(manager)
+    app = create_app(manager=manager, model_path=args.model_path)
 
     uvicorn.run(app, host=args.host, port=args.port)
 

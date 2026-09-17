@@ -104,27 +104,27 @@ class ModelManager:
         self._models: dict[str, ServableModel] = {}
         self._lock = Lock()
 
-    @property
-    def n_models(self) -> int:
-        return len(self._models)
-
-    @property
-    def n_loaded(self) -> int:
-        return sum(model.is_loaded for model in self._models.values())
-
-    def discover(self, path: str | Path) -> None:
+    def discover(self, path: str | Path) -> tuple[str, ...]:
         """Discover model artifacts recursively without loading model state.
 
         Repeated discovery overrides the old model.
 
         Args:
             path: Directory recursively searched for model manifests.
-        """
-        discovered: dict[str, ServableModel] = {}
 
+
+        Returns:
+            A tuple of newly discovered models.
+        """
+        new = set()
         for manifest_path in Path(path).rglob("MANIFEST.json"):
             model = ServableModel(manifest_path.parent)
-            discovered[model.model_id] = model
+
+            if model.model_id not in self._models:
+                new.add(model.model_id)
+                self._models[model.model_id] = model
+
+        return tuple(new)
 
     def load(self, model_id: str) -> Recommender:
         """Return a model, loading and caching it on first access.
@@ -141,7 +141,12 @@ class ModelManager:
         with self._lock:
             servable = self._models[model_id]
 
-        model_class = self.registry[servable.manifest.model_family]
+        try:
+            model_class = self.registry[servable.manifest.model_family]
+        except KeyError as exc:
+            raise RuntimeError(
+                f"Model family {servable.manifest.model_family!r} is not registered."
+            ) from exc
 
         return servable.load(model_class)
 
@@ -161,7 +166,19 @@ class ModelManager:
         return model.is_loaded if model is not None else False
 
     def available_models(self) -> tuple[ModelInfo, ...]:
-        """Return metadata for all discovered model artifacts."""
         with self._lock:
-            info = tuple(model.info for model in self._models.values())
-        return info
+            models = tuple(self._models.values())
+
+        return tuple(model.info for model in models)
+
+    @property
+    def n_models(self) -> int:
+        with self._lock:
+            return len(self._models)
+
+    @property
+    def n_loaded(self) -> int:
+        with self._lock:
+            models = tuple(self._models.values())
+
+        return sum(model.is_loaded for model in models)
