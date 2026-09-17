@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from recsys_platform.types import Float32Matrix, UInt32Matrix, UInt32Vector
 from recsys_platform.utils import generate_model_id
 
-from .manisfest import ModelManifest
+from .manifest import ModelManifest
 
 
 class RecommendationRequest(BaseModel):
