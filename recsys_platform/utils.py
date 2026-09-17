@@ -1,13 +1,15 @@
 import secrets
+import string
 from datetime import UTC, datetime
 
 
-_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+_ALPHABET = string.digits + string.ascii_letters
 
 
-def generate_model_id(model_type: str) -> str:
+def generate_model_id(model_family: str) -> str:
     """Generate a readable, time-sortable model identifier."""
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    suffix = "".join(secrets.choice(_ALPHABET) for _ in range(6))
 
-    return f"{model_type}-{timestamp}-{suffix}"
+    timestamp = datetime.now(UTC).strftime("%y%m%dT%H%M")
+    suffix = "".join(secrets.choice(_ALPHABET) for _ in range(5))
+
+    return f"{model_family}-{timestamp}-{suffix}"

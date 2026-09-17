@@ -24,7 +24,7 @@ class ModelManifest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     model_id: str
-    model_type: str
+    model_family: str
     artifact_version: str
     package_version: str = Field(default_factory=package_version)
     manifest_version: str = Field(default_factory=manifest_version)

@@ -48,7 +48,7 @@ class FakeDataset(RecommenderDataset):
 class FakeRecommender(Recommender):
     """Deterministic recommender used to verify evaluation behavior."""
 
-    MODEL_TYPE = "fake"
+    MODEL_FAMILY = "fake"
 
     def __init__(self, model_id: str | None = None) -> None:
         super().__init__(model_id=model_id)

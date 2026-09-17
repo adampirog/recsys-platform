@@ -55,12 +55,12 @@ class Recommendation(BaseModel):
 
 
 class Recommender(ABC):
-    MODEL_TYPE: ClassVar[str]
+    MODEL_FAMILY: ClassVar[str]
     ARTIFACT_VERSION: ClassVar[str]
 
     def __init__(self, *, model_id: str | None = None) -> None:
         if model_id is None:
-            self.model_id = generate_model_id(model_type=type(self).MODEL_TYPE)
+            self.model_id = generate_model_id(model_family=type(self).MODEL_FAMILY)
         else:
             self.model_id = model_id
 
@@ -84,7 +84,7 @@ class Recommender(ABC):
 
         ModelManifest(
             model_id=self.model_id,
-            model_type=self.MODEL_TYPE,
+            model_family=self.MODEL_FAMILY,
             artifact_version=self.ARTIFACT_VERSION,
         ).save(path / "MANIFEST.json")
 
@@ -97,4 +97,16 @@ class Recommender(ABC):
         """Load a serialized popularity model from disk."""
         path = Path(path)
         manifest = ModelManifest.load(path / "MANIFEST.json")
-        return cls._load(path, manifest=manifest)
+
+        if manifest.model_family != cls.MODEL_FAMILY:
+            raise ValueError(
+                f"Cannot load saved model with Manifest(model_family={manifest.model_family})"
+                f" with class {cls.__name__}(model_family={cls.MODEL_FAMILY})."
+            )
+
+        model = cls._load(path, manifest=manifest)
+
+        if model.model_id != manifest.model_id:
+            raise RuntimeError("'model_id' was overridden during loading.")
+
+        return model

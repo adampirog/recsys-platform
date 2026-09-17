@@ -18,7 +18,7 @@ class PopularityRecommender(Recommender):
     The model is non-personalized: every user receives the same ranked list.
     """
 
-    MODEL_TYPE = "popularity"
+    MODEL_FAMILY = "popularity"
     ARTIFACT_VERSION = "0.1.0"
 
     def __init__(
