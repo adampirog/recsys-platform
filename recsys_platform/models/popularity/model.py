@@ -3,7 +3,7 @@ from typing import Self
 
 import numpy as np
 
-from recsys_platform.models import Recommendation, RecommendationRequest, Recommender
+from recsys_platform.models import ModelManifest, Recommendation, RecommendationRequest, Recommender
 from recsys_platform.types import Float32Vector, UInt32Vector
 
 
@@ -18,7 +18,14 @@ class PopularityRecommender(Recommender):
     The model is non-personalized: every user receives the same ranked list.
     """
 
-    def __init__(self, item_ids: UInt32Vector, scores: Float32Vector) -> None:
+    MODEL_TYPE = "popularity"
+    ARTIFACT_VERSION = "0.1.0"
+
+    def __init__(
+        self, item_ids: UInt32Vector, scores: Float32Vector, *, model_id: str | None = None
+    ) -> None:
+        super().__init__(model_id=model_id)
+
         self.item_ids = item_ids
         self.scores = scores
 
@@ -40,20 +47,15 @@ class PopularityRecommender(Recommender):
             scores=np.broadcast_to(scores, (batch_size, n_recommendations)),
         )
 
-    def save(self, path: str | Path) -> None:
-        """Serialize the fitted popularity model to disk."""
-        path = Path(path)
-        path.mkdir(parents=True, exist_ok=True)
-
+    def _save(self, path: Path) -> None:
         np.savez(path / "model.npz", item_ids=self.item_ids, scores=self.scores)
 
     @classmethod
-    def load(cls, path: str | Path) -> Self:
-        """Load a serialized popularity model from disk."""
-        model_path = Path(path) / "model.npz"
+    def _load(cls, path: Path, manifest: ModelManifest) -> Self:
 
-        with np.load(model_path, allow_pickle=False) as state:
+        with np.load(path / "model.npz", allow_pickle=False) as state:
             model = cls(
+                model_id=manifest.model_id,
                 item_ids=state["item_ids"].astype(np.uint32, copy=False),
                 scores=state["scores"].astype(np.float32, copy=False),
             )

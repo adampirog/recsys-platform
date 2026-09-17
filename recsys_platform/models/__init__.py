@@ -1,4 +1,4 @@
-from .base import Recommendation, RecommendationRequest, Recommender
+from .base import ModelManifest, Recommendation, RecommendationRequest, Recommender
 
 
-__all__ = ["Recommendation", "RecommendationRequest", "Recommender"]
+__all__ = ["ModelManifest", "Recommendation", "RecommendationRequest", "Recommender"]

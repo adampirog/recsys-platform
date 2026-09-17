@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Annotated, Self
+from typing import Annotated, ClassVar, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from recsys_platform.types import Float32Matrix, UInt32Matrix, UInt32Vector
+from recsys_platform.utils import generate_model_id
+
+from .manisfest import ModelManifest
 
 
 class RecommendationRequest(BaseModel):
@@ -52,6 +55,15 @@ class Recommendation(BaseModel):
 
 
 class Recommender(ABC):
+    MODEL_TYPE: ClassVar[str]
+    ARTIFACT_VERSION: ClassVar[str]
+
+    def __init__(self, *, model_id: str | None = None) -> None:
+        if model_id is None:
+            self.model_id = generate_model_id(model_type=type(self).MODEL_TYPE)
+        else:
+            self.model_id = model_id
+
     @abstractmethod
     def predict(self, request: RecommendationRequest) -> Recommendation:
         """Generate recommendations for a batch of users.
@@ -60,8 +72,29 @@ class Recommender(ABC):
         """
 
     @abstractmethod
-    def save(self, path: str | Path) -> None: ...
+    def _save(self, path: Path) -> None: ...
+
+    def save(self, path: str | Path) -> None:
+        """Serialize the fitted model to disk."""
+
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
+
+        self._save(path)
+
+        ModelManifest(
+            model_id=self.model_id,
+            model_type=self.MODEL_TYPE,
+            artifact_version=self.ARTIFACT_VERSION,
+        ).save(path / "MANIFEST.json")
 
     @classmethod
     @abstractmethod
-    def load(cls, path: str | Path) -> Self: ...
+    def _load(cls, path: Path, manifest: ModelManifest) -> Self: ...
+
+    @classmethod
+    def load(cls, path: str | Path) -> Self:
+        """Load a serialized popularity model from disk."""
+        path = Path(path)
+        manifest = ModelManifest.load(path / "MANIFEST.json")
+        return cls._load(path, manifest=manifest)

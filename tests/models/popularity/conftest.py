@@ -37,6 +37,7 @@ def popularity_dataset(popularity_data_path: Path) -> PopularityDataset:
 @pytest.fixture(scope="module")
 def popularity_model() -> PopularityRecommender:
     return PopularityRecommender(
+        model_id="testing",
         item_ids=np.array([10, 20, 30, 40], dtype=np.uint32),
         scores=np.array([1.0, 0.6, 0.4, 0.4], dtype=np.float32),
     )

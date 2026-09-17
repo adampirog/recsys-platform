@@ -191,10 +191,8 @@ def print_summary(df: pl.LazyFrame) -> None:
 
 
 def parse_args() -> Namespace:
-    parser = ArgumentParser(
-        description=__doc__,
-        formatter_class=RawDescriptionHelpFormatter,
-    )
+    parser = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
+
     parser.add_argument("input", type=Path, help="Path to the raw dataset.")
     parser.add_argument("output", type=Path, help="Path to a cleaned parquet dataset.")
     parser.add_argument(

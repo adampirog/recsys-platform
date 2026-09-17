@@ -48,7 +48,10 @@ class FakeDataset(RecommenderDataset):
 class FakeRecommender(Recommender):
     """Deterministic recommender used to verify evaluation behavior."""
 
-    def __init__(self) -> None:
+    MODEL_TYPE = "fake"
+
+    def __init__(self, model_id: str | None = None) -> None:
+        super().__init__(model_id=model_id)
         self.requests: list[RecommendationRequest] = []
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
@@ -69,22 +72,22 @@ class FakeRecommender(Recommender):
             ),
         )
 
-    def save(self, path: str | Path) -> None:
+    def _save(self, path: Path) -> None:
         raise NotImplementedError
 
     @classmethod
-    def load(cls, path: str | Path) -> Self:
+    def _load(cls, path: Path, manifest) -> Self:
         raise NotImplementedError
 
 
 class FakeTrainer(Trainer[FakeDataset, FakeRecommender]):
     def fit(self, data: FakeDataset) -> FakeRecommender:
-        return FakeRecommender()
+        return FakeRecommender(model_id="testing")
 
 
 def test_evaluate_macro_averages_user_metrics() -> None:
     trainer = FakeTrainer()
-    model = FakeRecommender()
+    model = FakeRecommender(model_id="testing")
 
     result = trainer.evaluate(model, FakeDataset(), k_values=(1,))
 

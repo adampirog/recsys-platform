@@ -63,20 +63,10 @@ def get_subset(
 
 
 def parse_args() -> Namespace:
-    parser = ArgumentParser(
-        description=__doc__,
-        formatter_class=RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "input",
-        type=Path,
-        help="Path to the cleaned Parquet dataset.",
-    )
-    parser.add_argument(
-        "output",
-        type=Path,
-        help="Directory for the dataset splits.",
-    )
+    parser = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
+
+    parser.add_argument("input", type=Path, help="Path to the cleaned Parquet dataset.")
+    parser.add_argument("output", type=Path, help="Directory for the dataset splits.")
 
     return parser.parse_args()
 
@@ -90,21 +80,9 @@ def main(args: Namespace) -> None:
     valid = get_subset(df, VALID_DATES, valid_items)
     test = get_subset(df, TEST_DATES, valid_items)
 
-    train.sink_parquet(
-        args.output / "train.parquet",
-        mkdir=True,
-        engine="streaming",
-    )
-    valid.sink_parquet(
-        args.output / "valid.parquet",
-        mkdir=True,
-        engine="streaming",
-    )
-    test.sink_parquet(
-        args.output / "test.parquet",
-        mkdir=True,
-        engine="streaming",
-    )
+    train.sink_parquet(args.output / "train.parquet", mkdir=True, engine="streaming")
+    valid.sink_parquet(args.output / "valid.parquet", mkdir=True, engine="streaming")
+    test.sink_parquet(args.output / "test.parquet", mkdir=True, engine="streaming")
 
 
 def cli() -> None:
