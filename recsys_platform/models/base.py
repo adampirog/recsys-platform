@@ -11,16 +11,7 @@ from .manifest import ModelManifest
 
 
 class RecommendationRequest(BaseModel):
-    """Request top-k recommendations for a batch of users.
-
-    Users are processed in the order provided. Implementations of
-    ``Recommender.predict`` must preserve this order in the returned
-    recommendation rows.
-
-    Attributes:
-        user_ids: One-dimensional array of user IDs.
-        k: Maximum number of recommendations requested per user.
-    """
+    """Top-k recommendation request for an ordered batch of users."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 
@@ -29,17 +20,7 @@ class RecommendationRequest(BaseModel):
 
 
 class Recommendation(BaseModel):
-    """Ranked recommendations for a batch of users.
-
-    Rows correspond positionally to users in the associated
-    ``RecommendationRequest``. For row ``i``, ``item_ids[i]`` contains the
-    ranked recommended item IDs and ``scores[i]`` contains their scores.
-
-    Attributes:
-        item_ids: Ranked item IDs with shape
-            ``(n_users, n_recommendations)``.
-        scores: Recommendation scores with the same shape as ``item_ids``.
-    """
+    """Ranked item IDs and scores aligned row-wise with request users."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 
@@ -55,6 +36,8 @@ class Recommendation(BaseModel):
 
 
 class Recommender(ABC):
+    """Base interface for serializable recommendation models."""
+
     MODEL_FAMILY: ClassVar[str]
     ARTIFACT_VERSION: ClassVar[str]
 
@@ -66,9 +49,10 @@ class Recommender(ABC):
 
     @abstractmethod
     def predict(self, request: RecommendationRequest) -> Recommendation:
-        """Generate recommendations for a batch of users.
+        """
+        Generate recommendations for a batch of users.
 
-        Returned rows must preserve the order of ``request.user_ids``.
+        Returned rows preserves the order of ``request.user_ids``.
         """
 
     @abstractmethod

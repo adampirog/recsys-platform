@@ -6,15 +6,7 @@ from prettytable import PrettyTable
 
 
 class EvaluationResult(UserDict):
-    """
-    Recommendation metrics evaluated at multiple ranking cutoffs.
-
-    Maps each cutoff ``k`` to a dictionary of metric names and their
-    corresponding values.
-
-    Example:
-        ``result[10]["recall"]`` returns Recall@10.
-    """
+    """Mapping of ranking cutoffs to metric values."""
 
     def __str__(self) -> str:
         if not self.data:
@@ -32,12 +24,8 @@ class EvaluationResult(UserDict):
         return table.get_string()
 
     def save(self, path: str | Path) -> None:
-        """Save the evaluation result as a text table or JSON document.
+        """Save as ``.txt`` or ``.json``, inferred from the file extension."""
 
-        Args:
-            path: Destination file path.
-            Save format is inferred from the files extension (txt or json)
-        """
         path = Path(path)
         if path.suffix == ".txt":
             with open(path, "w", encoding="utf-8") as handle:

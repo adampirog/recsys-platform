@@ -29,16 +29,8 @@ def _prepare_inputs(y_true: ArrayLike, y_pred: ArrayLike, k: int) -> tuple[np.nd
 
 
 def hit_rate(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
-    """Return whether at least one y_true item occurs in the top-k.
+    """Return HitRate@k for a ranked prediction list."""
 
-    Args:
-        y_true: Ground-truth y_true item IDs.
-        y_pred: Item IDs ordered from most to least relevant.
-        k: Number of highest-ranked predictions to consider.
-
-    Returns:
-        1.0 if at least one y_true item is retrieved, otherwise 0.0.
-    """
     y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_true_array.size == 0:
@@ -50,18 +42,7 @@ def hit_rate(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
 
 
 def precision(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
-    """
-    Return the fraction of top-k predictions that are relevant.
-
-    Args:
-        y_true: Ground-truth y_true item IDs.
-        y_pred: Item IDs ordered from most to least relevant.
-        k: Number of highest-ranked predictions to consider.
-
-    Returns:
-        Precision@k in the range [0, 1].
-
-    """
+    """Return Precision@k for a ranked prediction list."""
 
     y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 

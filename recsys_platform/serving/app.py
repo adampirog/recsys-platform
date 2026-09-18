@@ -1,45 +1,4 @@
-"""HTTP serving application for recommendation models.
-
-This module defines the FastAPI application used to expose serialized
-recommender models over HTTP.
-
-At startup, the serving process discovers model artifacts beneath the
-configured model directory. Discovery reads model manifests only; model
-state is loaded lazily by ``ModelManager`` when a model is requested for
-inference.
-
-The API is intentionally transport-focused. Model discovery, loading,
-caching, and prediction remain delegated to the serving and model layers,
-while this module is responsible for:
-
-- HTTP request and response handling,
-- conversion between JSON payloads and internal NumPy-based model types,
-- API-level error handling,
-- service health reporting,
-- application startup configuration.
-
-The application can be constructed directly with ``create_app`` for tests
-or embedded usage, or started as a standalone server through ``main``.
-
-Endpoints:
-    GET /health:
-        Report service health and model availability.
-
-    GET /v1/models:
-        List discovered recommendation models and their loading state.
-
-    POST /v1/models/{model_id}/recommendations:
-        Generate ranked recommendations using the requested model.
-
-Example:
-    Run the server against a directory containing serialized model
-    artifacts::
-
-        python -m recsys_platform.serving.app \\
-            ./artifacts \\
-            --host 0.0.0.0 \\
-            --port 8000
-"""
+"""FastAPI application for serving serialized recommendation models."""
 
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from pathlib import Path
@@ -67,11 +26,11 @@ API_VERSION = "0.1.0"
 
 
 def create_app(manager: ModelManager, model_path: Path) -> FastAPI:
-    """Create the HTTP API backed by the provided model manager.
+    """Create the serving API for a model manager and artifact directory.
 
     Args:
-        manager: Manager responsible for discovered model artifacts and
-            lazy model loading.
+        manager: Model lifecycle manager.
+        model_path: Root directory scanned by refresh operations.
 
     Returns:
         Configured FastAPI application.

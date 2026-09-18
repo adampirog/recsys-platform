@@ -9,6 +9,8 @@ from .registry import ModelRegistry
 
 @dataclass(frozen=True, slots=True)
 class ModelInfo:
+    """Serving metadata for a discovered model artifact."""
+
     model_id: str
     model_family: str
     path: str
@@ -16,19 +18,7 @@ class ModelInfo:
 
 
 class ServableModel:
-    """Manage the serving lifecycle of one serialized model artifact.
-
-    A servable model is discovered from its manifest without loading the
-    potentially expensive model state. The underlying recommender is loaded
-    lazily on first use and cached until explicitly unloaded.
-
-    Loading and unloading are synchronized so concurrent requests cannot
-    initialize the same model more than once.
-
-    Attributes:
-        path: Directory containing the serialized model artifact.
-        manifest: Metadata describing the serialized model.
-    """
+    """Lazy, thread-safe wrapper around one serialized model artifact."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path).resolve()
@@ -39,18 +29,15 @@ class ServableModel:
 
     @property
     def model_id(self) -> str:
-        """Return the stable identifier of the model artifact."""
         return self.manifest.model_id
 
     @property
     def is_loaded(self) -> bool:
-        """Return whether the model state is currently loaded in memory."""
         with self._lock:
             return self._model is not None
 
     @property
     def info(self) -> ModelInfo:
-        """Return serving metadata without loading the model."""
         with self._lock:
             loaded = self._model is not None
 
@@ -62,17 +49,11 @@ class ServableModel:
         )
 
     def load(self, model_class: type[Recommender]) -> Recommender:
-        """Load and cache the model if it has not already been loaded.
-
-        Concurrent callers are serialized so the artifact is initialized
-        at most once.
+        """
+        Load and cache the model, returning the cached instance on later calls.
 
         Args:
-            model_class: Recommender implementation responsible for loading
-                this model family.
-
-        Returns:
-            Loaded recommender instance.
+            model_class: Recommender class used to load the artifact.
         """
         with self._lock:
             if self._model is None:
@@ -87,16 +68,7 @@ class ServableModel:
 
 
 class ModelManager:
-    """Discover and manage lazily loaded recommendation models.
-
-    The manager indexes artifacts by their stable ``model_id``. Discovery
-    reads manifests only; model state is loaded on demand and cached by the
-    corresponding ``ServableModel``.
-
-    The model index is synchronized independently from individual model
-    loading, allowing expensive artifact loading to occur without blocking
-    unrelated manager operations.
-    """
+    """Discover model artifacts and manage their lazy loading lifecycle."""
 
     def __init__(self, registry: ModelRegistry) -> None:
         self.registry = registry
@@ -105,14 +77,11 @@ class ModelManager:
         self._lock = Lock()
 
     def discover(self, path: str | Path) -> tuple[str, ...]:
-        """Discover model artifacts recursively without loading model state.
-
-        Args:
-            path: Directory recursively searched for model manifests.
-
+        """
+        Discover previously unseen model artifacts below a directory.
 
         Returns:
-            A tuple of newly discovered models.
+            IDs of newly discovered models.
         """
         new = set()
         for manifest_path in Path(path).rglob("MANIFEST.json"):
@@ -129,16 +98,12 @@ class ModelManager:
         return tuple(new)
 
     def load(self, model_id: str) -> Recommender:
-        """Return a model, loading and caching it on first access.
-
-        Args:
-            model_id: Stable ID stored in the model manifest.
-
-        Returns:
-            Loaded recommender instance.
+        """
+        Load and cache a discovered model by ID.
 
         Raises:
-            KeyError: If no artifact with the requested ID was discovered.
+            KeyError: If the model ID is unknown.
+            RuntimeError: If its model family is not registered.
         """
         with self._lock:
             servable = self._models[model_id]
@@ -168,6 +133,7 @@ class ModelManager:
         return model.is_loaded if model is not None else False
 
     def available_models(self) -> tuple[ModelInfo, ...]:
+        """Return metadata for all discovered models."""
         with self._lock:
             models = tuple(self._models.values())
 

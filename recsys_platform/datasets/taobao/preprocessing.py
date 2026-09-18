@@ -18,6 +18,7 @@ EVENT_TYPE_DTYPE = pl.Enum(["view", "favorite", "cart", "purchase"])
 
 
 def scan_dataset(path: str | Path) -> pl.LazyFrame:
+    """Scan the raw Taobao CSV as a lazy frame."""
     return pl.scan_csv(
         path,
         has_header=False,
@@ -39,6 +40,7 @@ def scan_dataset(path: str | Path) -> pl.LazyFrame:
 
 
 def clean_dataset(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Clean, type, and time-filter raw Taobao interactions."""
     return (
         df.drop_nulls(
             [

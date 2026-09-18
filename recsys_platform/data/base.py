@@ -9,15 +9,7 @@ from recsys_platform.types import UInt32Vector
 
 
 class TargetBatch(BaseModel):
-    """Ground-truth relevance data for a batch of users.
-
-    Targets are aligned positionally: ``relevant_items[i]`` contains the
-    relevant item IDs for ``user_ids[i]``.
-
-    Attributes:
-        user_ids: One-dimensional array of user IDs in the batch.
-        relevant_items: Per-user arrays of relevant item IDs.
-    """
+    """Ground-truth relevant items aligned with a batch of user IDs."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 
@@ -33,6 +25,8 @@ class TargetBatch(BaseModel):
 
 
 class RecommenderDataset(ABC):
+    """Base interface for path-backed recommendation datasets."""
+
     def __init__(self, path: Path | str) -> None:
         self.path = Path(path)
 

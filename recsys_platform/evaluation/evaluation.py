@@ -18,25 +18,18 @@ def _discounts(k: int) -> np.ndarray:
 
 
 def evaluate(
-    y_true: ArrayLike,
-    y_pred: ArrayLike,
-    k: int = 10,
-    metrics: Collection[str] = DEFAULT_METRICS,
+    y_true: ArrayLike, y_pred: ArrayLike, k: int = 10, metrics: Collection[str] = DEFAULT_METRICS
 ) -> dict[str, float]:
-    """
-    Evaluate one ranked recommendation list at a single cutoff.
-
-    Metric functions are resolved dynamically from the metrics module and
-    must accept the common ``(y_true, y_pred, k)`` interface.
+    """Evaluate one ranked recommendation list at a single cutoff.
 
     Args:
-        y_true: Relevant ground-truth item IDs.
-        y_pred: Predicted item IDs ordered from most to least relevant.
+        y_true: Relevant item IDs.
+        y_pred: Ranked predicted item IDs.
         k: Ranking cutoff.
-        metrics: Names of metrics to calculate.
+        metrics: Metric names to calculate.
 
     Returns:
-        Mapping from metric name to its value at ``k``.
+        Metric values keyed by name.
     """
     return {
         metric: getattr(metrics_module, metric)(
@@ -54,21 +47,16 @@ def evaluate_multiple(
     k_values: Iterable[int],
     metrics: Collection[str] = DEFAULT_METRICS,
 ) -> dict[int, dict[str, float]]:
-    """
-    Evaluate one ranked recommendation list at multiple cutoffs.
-
-    Uses an optimized implementation when all requested metrics belong to
-    the supported optimized metric set. Otherwise, falls back to evaluating
-    each cutoff independently.
+    """Evaluate one ranked recommendation list at multiple cutoffs.
 
     Args:
-        y_true: Relevant ground-truth item IDs.
-        y_pred: Predicted item IDs ordered from most to least relevant.
-        k_values: Ranking cutoffs to evaluate.
-        metrics: Names of metrics to calculate.
+        y_true: Relevant item IDs.
+        y_pred: Ranked predicted item IDs.
+        k_values: Ranking cutoffs.
+        metrics: Metric names to calculate.
 
     Returns:
-        Mapping from each cutoff to its metric values.
+        Metric values keyed by cutoff.
     """
     k_values = tuple(sorted(set(k_values)))
     metrics = tuple(dict.fromkeys(metrics))
@@ -87,22 +75,9 @@ def evaluate_multiple_optimized(
     k_values: tuple[int, ...],
     metrics: tuple[str, ...] = tuple(OPTIMIZED_METRICS),
 ) -> dict[int, dict[str, float]]:
-    """
-    Efficiently evaluate compatible ranking metrics at multiple cutoffs.
+    """Evaluate built-in ranking metrics at multiple cutoffs in one pass.
 
-    Optimized for: "precision", "recall", "hit_rate", "ndcg"
-
-    The relevance mask, cumulative hit counts, and discounted gains are
-    computed once and reused for every requested cutoff.
-
-    Args:
-        y_true: Relevant ground-truth item IDs.
-        y_pred: Predicted item IDs ordered from most to least relevant.
-        k_values: Ranking cutoffs to evaluate.
-        metrics: Optimized metric names to calculate.
-
-    Returns:
-        Mapping from each cutoff to its metric values.
+    Only metrics in ``OPTIMIZED_METRICS`` are supported.
     """
     max_k = max(k_values)
 

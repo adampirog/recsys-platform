@@ -1,3 +1,5 @@
+"""Create time-based train, validation, and test splits for Taobao interactions."""
+
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from datetime import datetime
 from pathlib import Path
@@ -27,9 +29,7 @@ TEST_DATES = (
 
 
 def get_valid_items(df: pl.LazyFrame) -> pl.DataFrame:
-    """
-    Get ids of items (from train) with at least 'MIN_ITEM_INTERACTIONS'
-    """
+    """Return training items with at least ``MIN_ITEM_INTERACTIONS`` interactions."""
     return (
         df.filter(
             pl.col("event_time").is_between(
@@ -46,10 +46,9 @@ def get_valid_items(df: pl.LazyFrame) -> pl.DataFrame:
 
 
 def get_subset(
-    df: pl.LazyFrame,
-    dates: tuple[datetime, datetime],
-    valid_items: pl.DataFrame,
+    df: pl.LazyFrame, dates: tuple[datetime, datetime], valid_items: pl.DataFrame
 ) -> pl.LazyFrame:
+    """Filter interactions to a date range and the supported item set."""
     return df.filter(
         pl.col("event_time").is_between(
             *dates,

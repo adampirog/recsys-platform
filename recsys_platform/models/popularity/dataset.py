@@ -7,11 +7,10 @@ from recsys_platform.data import RecommenderDataset, TargetBatch
 
 
 class PopularityDataset(RecommenderDataset):
-    """Dataset adapter for the global popularity recommender.
+    """
+    Dataset adapter for the global popularity recommender.
 
-    Interaction data must contain ``user_id`` and ``item_id`` columns.
-    During evaluation, each unique item interacted with by a user is treated
-    as a binary relevant item.
+    Requires ``user_id`` and ``item_id`` columns; evaluation uses unique items per user.
     """
 
     @property
@@ -20,17 +19,8 @@ class PopularityDataset(RecommenderDataset):
         return pl.scan_parquet(self.path)
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
-        """Yield user-level relevance targets in batches.
+        """Yield per-user unique relevant items in batches."""
 
-        Interactions are grouped by user and duplicate item interactions are
-        collapsed so each relevant item appears once per user.
-
-        Args:
-            batch_size: Maximum number of users in each yielded batch.
-
-        Yields:
-            Batches of user IDs and their relevant item IDs.
-        """
         targets = (
             self.data.group_by("user_id")
             .agg(pl.col("item_id").unique().alias("relevant_items"))

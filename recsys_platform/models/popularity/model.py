@@ -8,15 +8,7 @@ from recsys_platform.types import Float32Vector, UInt32Vector
 
 
 class PopularityRecommender(Recommender):
-    """
-    Recommend globally popular items.
-
-    Item popularity is defined as the number of interactions with an item
-    in the training dataset. Scores are normalized by the popularity of the
-    most popular item, producing values in the range [0, 1].
-
-    The model is non-personalized: every user receives the same ranked list.
-    """
+    """Recommend the same globally popular items to every user."""
 
     MODEL_FAMILY = "popularity"
     ARTIFACT_VERSION = "0.1.0"

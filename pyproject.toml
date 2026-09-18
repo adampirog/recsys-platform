@@ -9,11 +9,42 @@ license = "MIT"
 license-files = ["LICENSE"]
 dynamic = ["version"]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "numpy>=2.4",
+    "pydantic>=2.12",
+]
 
 [project.optional-dependencies]
-data = [
-    "polars>=1.44",
+
+# Inference runtime for the popularity model.
+popularity-inference = []
+
+# Train and evaluate the popularity model.
+popularity-training = [
+    "recsys-platform[popularity-inference,evaluation]",
+    "polars>=1.44.2",
+]
+
+# Generic evaluation/reporting functionality.
+evaluation = [
+    "prettytable>=3.18",
+]
+
+# Taobao dataset preprocessing/splitting.
+taobao-data = [
+    "polars>=1.44.2",
+    "tzdata",
+]
+
+# HTTP serving layer. Model runtimes are installed separately.
+serving = [
+    "fastapi>=0.140",
+    "uvicorn>=0.52",
+]
+
+# Everything currently supported by the package.
+all = [
+    "recsys-platform[popularity-training,taobao-data,serving]",
 ]
 
 [dependency-groups]

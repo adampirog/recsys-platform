@@ -8,6 +8,8 @@ from .model import PopularityRecommender
 
 
 class PopularityTrainer(Trainer[PopularityDataset, PopularityRecommender]):
+    """Train a global popularity recommender from interaction counts."""
+
     def __init__(self, max_items: int = 100) -> None:
         if max_items <= 0:
             raise ValueError("max_items must be greater than 0.")

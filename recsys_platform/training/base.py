@@ -22,6 +22,17 @@ class Trainer[DatasetType: RecommenderDataset, RecommenderType: Recommender](ABC
         k_values: Iterable[int] = (5, 10, 20),
         batch_size: int = 10_000,
     ) -> EvaluationResult:
+        """Evaluate a recommender using macro-averaged per-user ranking metrics.
+
+        Args:
+            model: Recommender to evaluate.
+            data: Dataset providing evaluation targets.
+            k_values: Ranking cutoffs.
+            batch_size: Users per prediction batch.
+
+        Returns:
+            Metrics averaged across evaluated users.
+        """
         k_values = tuple(sorted(set(k_values)))
         max_k = max(k_values)
         totals = {k: defaultdict(float) for k in k_values}

@@ -15,13 +15,7 @@ class ModelSpec:
 
 
 class ModelRegistry(Mapping[str, type[Recommender]]):
-    """Registry of lazily importable recommender implementations.
-
-    Model families are registered using import specifications rather than
-    importing their implementations eagerly.
-
-    Registry access is thread-safe.
-    """
+    """Thread-safe registry of lazily imported recommender classes."""
 
     def __init__(self) -> None:
         self._specs: dict[str, ModelSpec] = {}
@@ -30,13 +24,13 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
         self._lock = RLock()
 
     def register(self, model_family: str, *, module: str, class_name: str) -> None:
-        """Register a lazily importable model family.
-
+        """
+        Register or replace a recommender implementation for a model family.
 
         Args:
-            model_family: Stable family identifier stored in manifests.
-            module: Python module containing the recommender class.
-            class_name: Name of the recommender class in that module.
+            model_family: Family identifier stored in model manifests.
+            module: Module containing the recommender class.
+            class_name: Recommender class name.
         """
         spec = ModelSpec(module=module, class_name=class_name)
 
@@ -59,14 +53,12 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
             return model_class
 
     def __iter__(self) -> Iterator[str]:
-        """Iterate over all registered model families."""
         with self._lock:
             families = tuple(self._specs)
 
         return iter(families)
 
     def __len__(self) -> int:
-        """Return the number of registered model families."""
         with self._lock:
             return len(self._specs)
 
