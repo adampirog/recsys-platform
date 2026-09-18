@@ -107,8 +107,6 @@ class ModelManager:
     def discover(self, path: str | Path) -> tuple[str, ...]:
         """Discover model artifacts recursively without loading model state.
 
-        Repeated discovery overrides the old model.
-
         Args:
             path: Directory recursively searched for model manifests.
 
@@ -120,9 +118,13 @@ class ModelManager:
         for manifest_path in Path(path).rglob("MANIFEST.json"):
             model = ServableModel(manifest_path.parent)
 
-            if model.model_id not in self._models:
-                new.add(model.model_id)
+            with self._lock:
+                if model.model_id in self._models:
+                    continue
+
                 self._models[model.model_id] = model
+
+            new.add(model.model_id)
 
         return tuple(new)
 

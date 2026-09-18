@@ -25,16 +25,13 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
 
     def __init__(self) -> None:
         self._specs: dict[str, ModelSpec] = {}
-        self._models: dict[str, type[Recommender]] = {}
+        self.model_types: dict[str, type[Recommender]] = {}
 
         self._lock = RLock()
 
     def register(self, model_family: str, *, module: str, class_name: str) -> None:
         """Register a lazily importable model family.
 
-        Registering the same family with the same specification is
-        idempotent. Registering it with a different implementation is
-        rejected.
 
         Args:
             model_family: Stable family identifier stored in manifests.
@@ -45,18 +42,19 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
 
         with self._lock:
             self._specs[model_family] = spec
+            self.model_types.pop(model_family, None)
 
     def __getitem__(self, model_family: str) -> type[Recommender]:
         """Resolve and cache the recommender class for a model family."""
         with self._lock:
-            if model_family in self._models:
-                return self._models[model_family]
+            if model_family in self.model_types:
+                return self.model_types[model_family]
 
             spec = self._specs[model_family]
             module = import_module(spec.module)
             model_class = getattr(module, spec.class_name)
 
-            self._models[model_family] = model_class
+            self.model_types[model_family] = model_class
 
             return model_class
 

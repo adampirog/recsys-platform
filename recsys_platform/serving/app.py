@@ -136,14 +136,9 @@ def create_app(manager: ModelManager, model_path: Path) -> FastAPI:
         return ModelLoadResponse(model_id=model_id, loaded=True)
 
     @app.delete("/admin/models/{model_id}/load")
-    def unload_model(
-        model_id: str,
-    ) -> ModelLoadResponse:
+    def unload_model(model_id: str) -> ModelLoadResponse:
         """Unload model state while keeping the artifact registered."""
-        try:
-            manager.unload(model_id)
-        except KeyError as exc:
-            raise HTTPException(status_code=404, detail=f"Model {model_id!r} not found.") from exc
+        manager.unload(model_id)
 
         return ModelLoadResponse(model_id=model_id, loaded=False)
 

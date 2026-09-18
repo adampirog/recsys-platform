@@ -19,7 +19,8 @@ data = [
 [dependency-groups]
 dev = [
     "ruff",
-    "pytest>=9"
+    "pytest>=9",
+    "httpx2>=2"
 ]
 
 [project.urls]
@@ -44,6 +45,9 @@ addopts = [
     "--strict-config",
 ]
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:The anyio\\.abc\\.BlockingPortal alias is deprecated.*:DeprecationWarning:starlette\\.testclient",
+]
 
 [tool.ruff]
 line-length = 100
