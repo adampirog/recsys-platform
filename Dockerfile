@@ -38,14 +38,5 @@ RUN python -m pip install \
 USER appuser
 
 EXPOSE 8000
-
-CMD [
-    "python",
-    "-m",
-    "recsys_platform.serving.app",
-    "/models",
-    "--host",
-    "0.0.0.0",
-    "--port",
-    "8000"
-]
+ENTRYPOINT ["python", "-m", "recsys_platform.serving.app"]
+CMD ["/models", "--host", "0.0.0.0", "--port", "8000"]
