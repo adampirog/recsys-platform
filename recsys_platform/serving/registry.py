@@ -19,7 +19,7 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
 
     def __init__(self) -> None:
         self._specs: dict[str, ModelSpec] = {}
-        self.model_types: dict[str, type[Recommender]] = {}
+        self._model_types: dict[str, type[Recommender]] = {}
 
         self._lock = RLock()
 
@@ -36,19 +36,19 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
 
         with self._lock:
             self._specs[model_family] = spec
-            self.model_types.pop(model_family, None)
+            self._model_types.pop(model_family, None)
 
     def __getitem__(self, model_family: str) -> type[Recommender]:
         """Resolve and cache the recommender class for a model family."""
         with self._lock:
-            if model_family in self.model_types:
-                return self.model_types[model_family]
+            if model_family in self._model_types:
+                return self._model_types[model_family]
 
             spec = self._specs[model_family]
             module = import_module(spec.module)
             model_class = getattr(module, spec.class_name)
 
-            self.model_types[model_family] = model_class
+            self._model_types[model_family] = model_class
 
             return model_class
 

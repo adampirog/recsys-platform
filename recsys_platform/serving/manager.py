@@ -95,7 +95,7 @@ class ModelManager:
 
             new.add(model.model_id)
 
-        return tuple(new)
+        return tuple(sorted(new))
 
     def load(self, model_id: str) -> Recommender:
         """

@@ -34,6 +34,16 @@ class Trainer[DatasetType: RecommenderDataset, RecommenderType: Recommender](ABC
             Metrics averaged across evaluated users.
         """
         k_values = tuple(sorted(set(k_values)))
+
+        if not k_values:
+            raise ValueError("k_values must not be empty.")
+
+        if any(k <= 0 for k in k_values):
+            raise ValueError("k_values must contain only positive integers.")
+
+        if batch_size <= 0:
+            raise ValueError("batch_size must be greater than 0.")
+
         max_k = max(k_values)
         totals = {k: defaultdict(float) for k in k_values}
 
@@ -53,6 +63,9 @@ class Trainer[DatasetType: RecommenderDataset, RecommenderType: Recommender](ABC
                         totals[k][name] += value
 
             n_users += targets.user_ids.size
+
+        if n_users == 0:
+            raise ValueError("Evaluation dataset contains no users.")
 
         return EvaluationResult(
             {

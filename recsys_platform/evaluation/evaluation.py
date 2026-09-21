@@ -59,6 +59,13 @@ def evaluate_multiple(
         Metric values keyed by cutoff.
     """
     k_values = tuple(sorted(set(k_values)))
+
+    if not k_values:
+        raise ValueError("k_values must not be empty.")
+
+    if any(k <= 0 for k in k_values):
+        raise ValueError("k_values must contain only positive integers.")
+
     metrics = tuple(dict.fromkeys(metrics))
 
     if set(metrics) <= OPTIMIZED_METRICS:

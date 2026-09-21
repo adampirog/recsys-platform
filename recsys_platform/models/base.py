@@ -52,7 +52,7 @@ class Recommender(ABC):
         """
         Generate recommendations for a batch of users.
 
-        Returned rows preserves the order of ``request.user_ids``.
+        Returned rows preserve the order of ``request.user_ids``.
         """
 
     @abstractmethod

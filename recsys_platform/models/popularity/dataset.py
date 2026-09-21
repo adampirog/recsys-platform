@@ -21,13 +21,13 @@ class PopularityDataset(RecommenderDataset):
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
         """Yield per-user unique relevant items in batches."""
 
-        targets = (
-            self.data.group_by("user_id")
-            .agg(pl.col("item_id").unique().alias("relevant_items"))
-            .collect(engine="streaming")
+        targets = self.data.group_by("user_id").agg(
+            pl.col("item_id").unique().alias("relevant_items")
         )
 
-        for batch in targets.iter_slices(n_rows=batch_size):
+        for batch in targets.collect_batches(
+            chunk_size=batch_size, maintain_order=False, engine="streaming"
+        ):
             yield TargetBatch(
                 user_ids=batch["user_id"].to_numpy().astype(np.uint32, copy=False),
                 relevant_items=[

@@ -8,7 +8,7 @@ from recsys_platform.serving.manager import ModelManager
 from recsys_platform.serving.registry import ModelRegistry, create_default_registry
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def model_path(tmpdir_factory) -> Path:
     root = Path(tmpdir_factory.mktemp("data")) / "models"
 
@@ -27,12 +27,12 @@ def model_path(tmpdir_factory) -> Path:
     return root
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def registry() -> ModelRegistry:
     return create_default_registry()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def manager(model_path: Path, registry: ModelRegistry) -> ModelManager:
     manager = ModelManager(registry)
     manager.discover(model_path)
