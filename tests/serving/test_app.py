@@ -47,14 +47,8 @@ def test_recommendations_load_model_lazily(manager: ModelManager, model_path: Pa
     assert response.json() == {
         "model_id": "model-a",
         "user_ids": [101, 102],
-        "item_ids": [
-            [10, 20],
-            [10, 20],
-        ],
-        "scores": [
-            [1.0, 0.5],
-            [1.0, 0.5],
-        ],
+        "item_ids": [[10, 20], [10, 20]],
+        "scores": [[1.0, 0.5], [1.0, 0.5]],
     }
 
     assert manager.is_loaded("model-a")
