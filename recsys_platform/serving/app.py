@@ -1,0 +1,135 @@
+"""FastAPI application for serving serialized recommendation models."""
+
+from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
+from pathlib import Path
+
+import numpy as np
+import uvicorn
+from fastapi import FastAPI, HTTPException
+
+from recsys_platform.models import RecommendationRequest as ModelRequest
+from recsys_platform.version import __version__
+
+from .manager import ModelManager
+from .registry import create_default_registry
+from .schema import (
+    HealthResponse,
+    ModelLoadResponse,
+    ModelRefreshResponse,
+    ModelResponse,
+    RecommendationRequest,
+    RecommendationResponse,
+)
+
+
+API_VERSION = "0.1.0"
+
+
+def create_app(manager: ModelManager, model_path: Path) -> FastAPI:
+    """Create the serving API for a model manager and artifact directory.
+
+    Args:
+        manager: Model lifecycle manager.
+        model_path: Root directory scanned by refresh operations.
+
+    Returns:
+        Configured FastAPI application.
+    """
+    app = FastAPI(title="RecSys Platform", version=API_VERSION)
+    model_path = model_path.resolve()
+
+    @app.get("/health")
+    def health() -> HealthResponse:
+        """Report service health and model availability."""
+        return HealthResponse(
+            status="ok" if manager.n_models else "degraded",
+            version=__version__,
+            models_available=manager.n_models,
+            models_loaded=manager.n_loaded,
+        )
+
+    @app.get("/v1/models")
+    def models() -> list[ModelResponse]:
+        """List models currently available to the serving process."""
+        return [
+            ModelResponse(
+                model_id=model.model_id, model_family=model.model_family, loaded=model.loaded
+            )
+            for model in manager.available_models()
+        ]
+
+    @app.post("/v1/models/{model_id}/recommendations")
+    def recommend(model_id: str, request: RecommendationRequest) -> RecommendationResponse:
+        """Generate recommendations using the requested model."""
+        try:
+            model = manager.load(model_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=f"Model {model_id!r} not found.") from exc
+
+        user_ids = np.asarray(request.user_ids, dtype=np.uint32)
+
+        recommendations = model.predict(ModelRequest(user_ids=user_ids, k=request.k))
+
+        return RecommendationResponse(
+            model_id=model_id,
+            user_ids=request.user_ids,
+            item_ids=recommendations.item_ids.tolist(),
+            scores=recommendations.scores.tolist(),
+        )
+
+    @app.post("/admin/models/refresh")
+    def refresh_models() -> ModelRefreshResponse:
+        """Discover model artifacts added since the previous scan."""
+        added = manager.discover(model_path)
+
+        return ModelRefreshResponse(added=list(added))
+
+    @app.post("/admin/models/{model_id}/load")
+    def load_model(model_id: str) -> ModelLoadResponse:
+        """Load a model into memory before it receives inference traffic."""
+        try:
+            manager.load(model_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=f"Model {model_id!r} not found.") from exc
+
+        return ModelLoadResponse(model_id=model_id, loaded=True)
+
+    @app.delete("/admin/models/{model_id}/load")
+    def unload_model(model_id: str) -> ModelLoadResponse:
+        """Unload model state while keeping the artifact registered."""
+        manager.unload(model_id)
+
+        return ModelLoadResponse(model_id=model_id, loaded=False)
+
+    return app
+
+
+def parse_args() -> Namespace:
+    parser = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
+
+    parser.add_argument(
+        "model_path", type=Path, help="Root directory containing serialized model artifacts."
+    )
+
+    parser.add_argument("--host", default="0.0.0.0", help="Server host.")
+    parser.add_argument("--port", type=int, default=8000, help="Server port.")
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Discover available models and start the API server."""
+    args = parse_args()
+
+    registry = create_default_registry()
+
+    manager = ModelManager(registry)
+    manager.discover(args.model_path)
+
+    app = create_app(manager=manager, model_path=args.model_path)
+
+    uvicorn.run(app, host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()
