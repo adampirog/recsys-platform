@@ -74,8 +74,8 @@ jobs:
 
       - name: Show container logs on failure
         if: failure()
-        run: docker logs recsys-platform-ci
+        run: docker logs recsys-platform-ci || true
 
       - name: Stop container
         if: always()
-        run: docker rm --force recsys-platform-ci
+        run: docker rm --force recsys-platform-ci || true
