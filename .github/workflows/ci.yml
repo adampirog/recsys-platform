@@ -69,7 +69,7 @@ jobs:
             --show-error \
             --retry 10 \
             --retry-delay 1 \
-            --retry-connrefused \
+            --retry-all-errors \
             http://localhost:8000/health
 
       - name: Show container logs on failure
