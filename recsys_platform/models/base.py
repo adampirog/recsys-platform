@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from recsys_platform.types import Float32Matrix, UInt32Matrix, UInt32Vector
 from recsys_platform.utils import generate_model_id
 
-from .manifest import ModelManifest
+from .manifest import ModelManifest, TrainingMetadata
 
 
 class RecommendationRequest(BaseModel):
@@ -41,11 +41,13 @@ class Recommender(ABC):
     MODEL_FAMILY: ClassVar[str]
     ARTIFACT_VERSION: ClassVar[str]
 
-    def __init__(self, *, model_id: str | None = None) -> None:
+    def __init__(self, *, training_metadata: TrainingMetadata, model_id: str | None = None) -> None:
         if model_id is None:
             self.model_id = generate_model_id(model_family=type(self).MODEL_FAMILY)
         else:
             self.model_id = model_id
+
+        self.training_metadata = training_metadata
 
     @abstractmethod
     def predict(self, request: RecommendationRequest) -> Recommendation:
@@ -68,6 +70,7 @@ class Recommender(ABC):
 
         ModelManifest(
             model_id=self.model_id,
+            training_metadata=self.training_metadata,
             model_family=self.MODEL_FAMILY,
             artifact_version=self.ARTIFACT_VERSION,
         ).save(path / "MANIFEST.json")

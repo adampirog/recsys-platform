@@ -2,13 +2,28 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable
 
+from pydantic import BaseModel, ConfigDict
+
 from recsys_platform.data import RecommenderDataset
 from recsys_platform.evaluation import EvaluationResult, evaluate_multiple
-from recsys_platform.models import RecommendationRequest, Recommender
+from recsys_platform.models import RecommendationRequest, Recommender, TrainingMetadata
 
 
-class Trainer[DatasetType: RecommenderDataset, RecommenderType: Recommender](ABC):
+class TrainerConfig(BaseModel):
+    """Configuration used to train a recommender."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class Trainer[
+    DatasetType: RecommenderDataset,
+    RecommenderType: Recommender,
+    ConfigType: TrainerConfig,
+](ABC):
     """Train and evaluate a model-specific recommender."""
+
+    def __init__(self, config: ConfigType) -> None:
+        self.config = config
 
     @abstractmethod
     def fit(self, data: DatasetType) -> RecommenderType:
@@ -72,4 +87,9 @@ class Trainer[DatasetType: RecommenderDataset, RecommenderType: Recommender](ABC
                 k: {name: value / n_users for name, value in metrics.items()}
                 for k, metrics in totals.items()
             }
+        )
+
+    def get_metadata(self) -> TrainingMetadata:
+        return TrainingMetadata(
+            trainer=type(self).__name__, config=self.config.model_dump(mode="json")
         )

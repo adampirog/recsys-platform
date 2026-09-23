@@ -2,12 +2,12 @@ import json
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from recsys_platform.version import __version__
 
 
-MANIFEST_VERSION = "0.1.0"
+MANIFEST_VERSION = "1.0.0"
 
 
 def package_version() -> str:
@@ -18,6 +18,13 @@ def manifest_version() -> str:
     return MANIFEST_VERSION
 
 
+class TrainingMetadata(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    trainer: str
+    config: dict[str, JsonValue]
+
+
 class ModelManifest(BaseModel):
     """Metadata required to identify and load a serialized model."""
 
@@ -25,6 +32,7 @@ class ModelManifest(BaseModel):
 
     model_id: str
     model_family: str
+    training_metadata: TrainingMetadata
     artifact_version: str
     package_version: str = Field(default_factory=package_version)
     manifest_version: str = Field(default_factory=manifest_version)
