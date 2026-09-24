@@ -59,6 +59,7 @@ def test_save_and_load_preserve_model_state(
     assert loaded.item_ids.dtype == np.uint32
     assert loaded.scores.dtype == np.float32
     assert loaded.model_id == popularity_model.model_id
+    assert loaded.training_metadata == popularity_model.training_metadata
 
 
 def test_loaded_model_produces_same_predictions(

@@ -3,7 +3,13 @@ from typing import Self
 
 import numpy as np
 
-from recsys_platform.models import ModelManifest, Recommendation, RecommendationRequest, Recommender
+from recsys_platform.models import (
+    ModelManifest,
+    Recommendation,
+    RecommendationRequest,
+    Recommender,
+    TrainingMetadata,
+)
 from recsys_platform.types import Float32Vector, UInt32Vector
 
 
@@ -14,9 +20,14 @@ class PopularityRecommender(Recommender):
     ARTIFACT_VERSION = "0.1.0"
 
     def __init__(
-        self, item_ids: UInt32Vector, scores: Float32Vector, *, model_id: str | None = None
+        self,
+        item_ids: UInt32Vector,
+        scores: Float32Vector,
+        *,
+        training_metadata: TrainingMetadata | None = None,
+        model_id: str | None = None,
     ) -> None:
-        super().__init__(model_id=model_id)
+        super().__init__(model_id=model_id, training_metadata=training_metadata)
 
         self.item_ids = item_ids
         self.scores = scores
@@ -48,6 +59,7 @@ class PopularityRecommender(Recommender):
         with np.load(path / "model.npz", allow_pickle=False) as state:
             model = cls(
                 model_id=manifest.model_id,
+                training_metadata=manifest.training_metadata,
                 item_ids=state["item_ids"].astype(np.uint32, copy=False),
                 scores=state["scores"].astype(np.float32, copy=False),
             )

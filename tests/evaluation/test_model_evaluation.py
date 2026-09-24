@@ -10,7 +10,7 @@ from numpy import testing as npt
 from recsys_platform.data import RecommenderDataset, TargetBatch
 from recsys_platform.evaluation import EvaluationResult
 from recsys_platform.models import Recommendation, RecommendationRequest, Recommender
-from recsys_platform.training import Trainer
+from recsys_platform.training import Trainer, TrainerConfig
 
 
 class FakeDataset(RecommenderDataset):
@@ -80,7 +80,10 @@ class FakeRecommender(Recommender):
         raise NotImplementedError
 
 
-class FakeTrainer(Trainer[FakeDataset, FakeRecommender]):
+class FakeTrainer(Trainer[FakeDataset, FakeRecommender, TrainerConfig]):
+    def __init__(self, config: TrainerConfig | None = None) -> None:
+        super().__init__(config or TrainerConfig())
+
     def fit(self, data: FakeDataset) -> FakeRecommender:
         return FakeRecommender(model_id="testing")
 
