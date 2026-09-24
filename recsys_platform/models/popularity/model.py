@@ -24,7 +24,7 @@ class PopularityRecommender(Recommender):
         item_ids: UInt32Vector,
         scores: Float32Vector,
         *,
-        training_metadata: TrainingMetadata,
+        training_metadata: TrainingMetadata | None = None,
         model_id: str | None = None,
     ) -> None:
         super().__init__(model_id=model_id, training_metadata=training_metadata)

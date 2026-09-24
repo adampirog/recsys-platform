@@ -41,7 +41,9 @@ class Recommender(ABC):
     MODEL_FAMILY: ClassVar[str]
     ARTIFACT_VERSION: ClassVar[str]
 
-    def __init__(self, *, training_metadata: TrainingMetadata, model_id: str | None = None) -> None:
+    def __init__(
+        self, *, model_id: str | None = None, training_metadata: TrainingMetadata | None = None
+    ) -> None:
         if model_id is None:
             self.model_id = generate_model_id(model_family=type(self).MODEL_FAMILY)
         else:

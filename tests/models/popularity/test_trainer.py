@@ -3,7 +3,7 @@ import numpy.testing as npt
 
 from recsys_platform.models.popularity import PopularityRecommender
 from recsys_platform.models.popularity.dataset import PopularityDataset
-from recsys_platform.models.popularity.trainer import PopularityTrainer
+from recsys_platform.models.popularity.trainer import PopularityTrainer, PopularityTrainerConfig
 
 
 def test_fit_returns_popularity_recommender(popularity_dataset: PopularityDataset) -> None:
@@ -60,7 +60,8 @@ def test_evaluate_integrates_trainer_model_and_dataset(
 
 
 def test_fit_respects_max_items(popularity_dataset: PopularityDataset) -> None:
-    model = PopularityTrainer(max_items=2).fit(popularity_dataset)
+    config = PopularityTrainerConfig(max_items=2)
+    model = PopularityTrainer(config).fit(popularity_dataset)
 
     npt.assert_array_equal(model.item_ids, np.array([10, 20], dtype=np.uint32))
     npt.assert_allclose(model.scores, np.array([1.0, 0.6], dtype=np.float32))

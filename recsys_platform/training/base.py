@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable
+from pathlib import Path
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,6 +15,15 @@ class TrainerConfig(BaseModel):
     """Configuration used to train a recommender."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @classmethod
+    def load(cls, path: str | Path) -> Self:
+        with open(path, encoding="utf-8") as handle:
+            return cls.model_validate_json(handle.read())
+
+    def save(self, path: str | Path) -> None:
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(self.model_dump_json(indent=2))
 
 
 class Trainer[
@@ -91,5 +102,6 @@ class Trainer[
 
     def get_metadata(self) -> TrainingMetadata:
         return TrainingMetadata(
-            trainer=type(self).__name__, config=self.config.model_dump(mode="json")
+            trainer=f"{type(self).__module__}.{type(self).__qualname__}",
+            config=self.config.model_dump(mode="json"),
         )

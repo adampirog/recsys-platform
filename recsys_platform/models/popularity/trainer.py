@@ -17,11 +17,8 @@ class PopularityTrainerConfig(TrainerConfig):
 class PopularityTrainer(Trainer[PopularityDataset, PopularityRecommender, PopularityTrainerConfig]):
     """Train a global popularity recommender from interaction counts."""
 
-    def __init__(self, config: PopularityTrainerConfig) -> None:
-        super().__init__(config=config)
-
-        if config.max_items <= 0:
-            raise ValueError("max_items must be greater than 0.")
+    def __init__(self, config: PopularityTrainerConfig | None = None) -> None:
+        super().__init__(config=config or PopularityTrainerConfig())
 
     def fit(self, data: PopularityDataset) -> PopularityRecommender:
         popularity = (

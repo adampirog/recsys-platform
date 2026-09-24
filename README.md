@@ -69,7 +69,7 @@ from recsys_platform.models.popularity.trainer import PopularityTrainer
 train = PopularityDataset("data/train.parquet")
 valid = PopularityDataset("data/valid.parquet")
 
-trainer = PopularityTrainer(max_items=100)
+trainer = PopularityTrainer()
 model = trainer.fit(train)
 
 print(trainer.evaluate(model, valid, k_values=(5, 10, 20)))
