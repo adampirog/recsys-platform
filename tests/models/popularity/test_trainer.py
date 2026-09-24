@@ -65,3 +65,7 @@ def test_fit_respects_max_items(popularity_dataset: PopularityDataset) -> None:
 
     npt.assert_array_equal(model.item_ids, np.array([10, 20], dtype=np.uint32))
     npt.assert_allclose(model.scores, np.array([1.0, 0.6], dtype=np.float32))
+
+    assert model.training_metadata is not None
+    assert model.training_metadata.config == {"max_items": 2}
+    assert model.training_metadata.trainer.endswith(".PopularityTrainer")

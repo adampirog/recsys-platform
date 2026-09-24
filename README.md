@@ -1,6 +1,9 @@
 # Recommender System Platform
 
 [![CI](https://github.com/adampirog/recsys-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/adampirog/recsys-platform/actions/workflows/ci.yml)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+![Python](https://img.shields.io/badge/python-3.13%2B-blue)
+![License](https://img.shields.io/github/license/adampirog/recsys-platform)
 
 A modular platform for training, evaluating, serializing, and serving recommender systems.
 
@@ -11,9 +14,10 @@ _The current V1 uses a global popularity model as a simple baseline while the in
 ## Highlights
 
 - Generic `Recommender`, `Trainer`, and dataset interfaces
+- CLI workflows for data preparation, training, evaluation, and serving
 - Batched NumPy inference
-- Recommendations metrics: Precision@K, Recall@K, HitRate@K, and NDCG@K
-- Versioned model artifacts and manifests
+- Recommendation metrics: Precision@K, Recall@K, HitRate@K, and NDCG@K
+- Versioned model artifacts with training metadata
 - FastAPI serving with lazy model loading
 - Model-family registry and runtime model discovery
 - Separate training and inference dependencies
@@ -22,33 +26,27 @@ _The current V1 uses a global popularity model as a simple baseline while the in
 
 ## Development dataset
 
-The platform has been developed against the **Taobao UserBehavior** dataset: a large-scale, real-world e-commerce interaction dataset containing roughly 100 million user-item events. [(Original data source)](https://tianchi.aliyun.com/dataset/649)
+The platform has been developed against the **Taobao UserBehavior** dataset: a large-scale, real-world e-commerce interaction dataset containing roughly **100 million user-item events**. [(Original data source)](https://tianchi.aliyun.com/dataset/649)
 
-It provides a useful environment for developing and testing recommender infrastructure at realistic scale, while remaining completely separate from the platform's core abstractions.
-
-Included utilities provide:
-
-- raw Taobao preprocessing
-- event normalization
-- time-based train/validation/test splits
-- training-only item support filtering
-
-The Taobao integration is a reference implementation, not a requirement for using the platform.
+It provides a realistic workload for developing and testing the platform while remaining separate from its core abstractions. The included Taobao integration is a reference implementation, not a requirement for using the platform.
 
 ## Installation
 
 Requires **Python 3.13+**.
 
-```bash id="ao2qdt"
+```bash
 git clone https://github.com/adampirog/recsys-platform.git
 cd recsys-platform
 ```
 
-Install the specific components you need:
+Install the components you need:
 
-```bash id="in4rij"
+```bash
 # Popularity training + evaluation
 pip install -e ".[popularity-training]"
+
+# Taobao data preparation
+pip install -e ".[taobao-data]"
 
 # Serving
 pip install -e ".[serving,popularity-inference]"
@@ -57,50 +55,102 @@ pip install -e ".[serving,popularity-inference]"
 pip install -e ".[all]"
 ```
 
-## Quick start -- base model
+## Quick start
 
-```python id="5v8xgi"
-from pathlib import Path
+The included scripts cover the complete workflow from raw interactions to a served model.
 
-from recsys_platform.models.popularity.dataset import PopularityDataset
-from recsys_platform.models.popularity.trainer import PopularityTrainer
+### 1. Prepare the Taobao dataset
 
+Clean the raw dataset and generate a short dataset summary:
 
-train = PopularityDataset("data/train.parquet")
-valid = PopularityDataset("data/valid.parquet")
-
-trainer = PopularityTrainer()
-model = trainer.fit(train)
-
-print(trainer.evaluate(model, valid, k_values=(5, 10, 20)))
-
-model.save(Path("artifacts") / model.model_id)
+```bash
+python -m recsys_platform.datasets.taobao.preprocessing \
+  data/UserBehavior.csv \
+  data/taobao.parquet
 ```
 
-## Serving
+Create temporal train, validation, and test splits:
 
-Start the API using a directory containing serialized model artifacts:
+```bash
+python -m recsys_platform.datasets.taobao.split \
+  data/taobao.parquet \
+  data/splits
+```
 
-```bash id="dnyf8b"
+This produces:
+
+```text
+data/splits/
+├── train.parquet
+├── valid.parquet
+└── test.parquet
+```
+
+### 2. Train a model
+
+Training is configured through a JSON file:
+
+```json
+{
+  "max_items": 100
+}
+```
+
+Train and serialize the popularity model:
+
+```bash
+python -m recsys_platform.models.popularity.train \
+  configs/popularity.json \
+  data/splits/train.parquet \
+  --validation-dataset data/splits/valid.parquet \
+  --output artifacts/popularity
+```
+
+The resulting artifact contains the model state together with a manifest describing its identity, versions, and training configuration.
+
+### 3. Evaluate a saved model
+
+```bash
+python -m recsys_platform.models.popularity.evaluate \
+  artifacts/popularity \
+  data/splits/test.parquet \
+  --output artifacts/popularity/test.json
+```
+
+Evaluation results are also printed to the terminal.
+
+### 4. Serve models
+
+Start the API against a directory containing model artifacts:
+
+```bash
 python -m recsys_platform.serving.app ./artifacts
 ```
 
-Generate recommendations:
+Models are discovered from their manifests and loaded lazily on first use.
 
-```bash id="bjysal"
+Interactive API documentation is available at:
+
+```text
+http://localhost:8000/docs
+```
+
+Generate recommendations directly:
+
+```bash
 curl -X POST \
   http://localhost:8000/v1/models/<model-id>/recommendations \
   -H "Content-Type: application/json" \
   -d '{"user_ids": [101, 102], "k": 10}'
 ```
 
-Models are discovered from their manifests and loaded lazily on first use.
+All scripts expose their available options through `--help`.
 
-Available operations include model listing, recommendation inference, artifact refresh, and explicit model loading/unloading.
+## Docker
 
-### Docker
+Build and run the serving image:
 
-```bash id="ybe3d8"
+```bash
 docker build -t recsys-platform .
 
 docker run --rm \
@@ -108,8 +158,6 @@ docker run --rm \
   -v "$(pwd)/artifacts:/models:ro" \
   recsys-platform
 ```
-
-Interactive API documentation is available at: `http://localhost:8000/docs` (Swagger UI)
 
 _The runtime image contains only serving and inference dependencies._
 
@@ -142,7 +190,7 @@ _The runtime image contains only serving and inference dependencies._
 
 ## Development
 
-```bash id="fp365y"
+```bash
 pip install -e ".[all]" --group dev
 
 ruff check .
@@ -150,7 +198,3 @@ pytest
 ```
 
 Pull requests to `master` run Python checks and a Docker serving smoke test through GitHub Actions.
-
-## License
-
-MIT
