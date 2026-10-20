@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict
+from tqdm.auto import tqdm
 
 from recsys_platform.data import RecommenderDataset
-from recsys_platform.evaluation import EvaluationResult, evaluate_multiple
+from recsys_platform.evaluation import EvaluationResult, evaluate_batch_sums
 from recsys_platform.models import RecommendationRequest, Recommender, TrainingMetadata
 
 
@@ -47,6 +48,7 @@ class Trainer[
         *,
         k_values: Iterable[int] = (5, 10, 20),
         batch_size: int = 10_000,
+        verbose: bool = False,
     ) -> EvaluationResult:
         """Evaluate a recommender using macro-averaged per-user ranking metrics.
 
@@ -74,21 +76,26 @@ class Trainer[
         totals = {k: defaultdict(float) for k in k_values}
 
         n_users = 0
-        for targets in data.iter_targets(batch_size):
-            recommendations = model.predict(
-                RecommendationRequest(user_ids=targets.user_ids, k=max_k)
-            )
+        total = data.n_targets if verbose else None
+        with tqdm(desc="Evaluating", unit=" users", disable=not verbose, total=total) as progress:
+            for targets in data.iter_targets(batch_size):
+                recommendations = model.predict(
+                    RecommendationRequest(user_ids=targets.user_ids, k=max_k)
+                )
 
-            for y_true, y_pred in zip(
-                targets.relevant_items, recommendations.item_ids, strict=True
-            ):
-                result = evaluate_multiple(y_true=y_true, y_pred=y_pred, k_values=k_values)
+                batch_totals = evaluate_batch_sums(
+                    y_true=targets.relevant_items,
+                    y_pred=recommendations.item_ids,
+                    k_values=k_values,
+                )
 
-                for k, metrics in result.items():
+                for k, metrics in batch_totals.items():
                     for name, value in metrics.items():
                         totals[k][name] += value
 
-            n_users += targets.user_ids.size
+                batch_users = targets.user_ids.size
+                n_users += batch_users
+                progress.update(batch_users)
 
         if n_users == 0:
             raise ValueError("Evaluation dataset contains no users.")

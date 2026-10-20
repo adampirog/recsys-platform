@@ -28,6 +28,7 @@ popularity-training = [
 # Generic evaluation/reporting functionality.
 evaluation = [
     "prettytable>=3.18",
+    "tqdm>=4.67",
 ]
 
 # Taobao dataset preprocessing/splitting.

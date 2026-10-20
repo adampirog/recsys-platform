@@ -37,10 +37,7 @@ class FakeDataset(RecommenderDataset):
 
         self.requested_batch_sizes: list[int] = []
 
-    def iter_targets(
-        self,
-        batch_size: int,
-    ) -> Iterator[TargetBatch]:
+    def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
         self.requested_batch_sizes.append(batch_size)
         yield from self.batches
 
@@ -64,13 +61,7 @@ class FakeRecommender(Recommender):
             dtype=np.uint32,
         )
 
-        return Recommendation(
-            item_ids=item_ids,
-            scores=np.ones_like(
-                item_ids,
-                dtype=np.float32,
-            ),
-        )
+        return Recommendation(item_ids=item_ids, scores=np.ones_like(item_ids, dtype=np.float32))
 
     def _save(self, path: Path) -> None:
         raise NotImplementedError

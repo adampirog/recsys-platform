@@ -1,4 +1,6 @@
 from collections.abc import Iterator
+from functools import cached_property
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -13,10 +15,21 @@ class PopularityDataset(RecommenderDataset):
     Requires ``user_id`` and ``item_id`` columns; evaluation uses unique items per user.
     """
 
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+
     @property
     def data(self) -> pl.LazyFrame:
         """Return the interaction dataset as a lazy Polars frame."""
         return pl.scan_parquet(self.path)
+
+    @cached_property
+    def _n_targets(self) -> int:
+        return self.data.select(pl.col("user_id").n_unique()).collect(engine="streaming").item()
+
+    @property
+    def n_targets(self) -> int:
+        return self._n_targets
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
         """Yield per-user unique relevant items in batches."""
