@@ -155,9 +155,16 @@ def temporary_extract(archive: str | Path) -> Generator[Path]:
     """
     Extract an archive to a temporary directory
     """
-    with TemporaryDirectory() as temp_dir:
-        extract_archive(archive, temp_dir)
-        yield Path(temp_dir)
+    archive = Path(archive)
+
+    if archive.is_dir():
+        yield archive
+    elif archive.is_file():
+        with TemporaryDirectory() as temp_dir:
+            extract_archive(archive, temp_dir)
+            yield Path(temp_dir)
+    else:
+        raise FileNotFoundError(f"Path '{archive}' is not valid.")
 
 
 @contextmanager

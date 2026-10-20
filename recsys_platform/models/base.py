@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from recsys_platform.types import Float32Matrix, UInt32Matrix, UInt32Vector
 from recsys_platform.utils import generate_model_id
+from recsys_platform.utils.archives import create_archive, temporary_extract
 
 from .manifest import ModelManifest, TrainingMetadata
 
@@ -62,7 +63,7 @@ class Recommender(ABC):
     @abstractmethod
     def _save(self, path: Path) -> None: ...
 
-    def save(self, path: str | Path) -> None:
+    def save(self, path: str | Path, *, compress: bool = False) -> None:
         """Serialize the fitted model to disk."""
 
         path = Path(path)
@@ -77,6 +78,9 @@ class Recommender(ABC):
             artifact_version=self.ARTIFACT_VERSION,
         ).save(path / "MANIFEST.json")
 
+        if compress:
+            create_archive(path)
+
     @classmethod
     @abstractmethod
     def _load(cls, path: Path, manifest: ModelManifest) -> Self: ...
@@ -86,15 +90,16 @@ class Recommender(ABC):
         """Load a serialized Recommender from disk."""
 
         path = Path(path)
-        manifest = ModelManifest.load(path / "MANIFEST.json")
+        with temporary_extract(path) as path:
+            manifest = ModelManifest.load(path / "MANIFEST.json")
 
-        if manifest.model_family != cls.MODEL_FAMILY:
-            raise ValueError(
-                f"Cannot load saved model with Manifest(model_family={manifest.model_family})"
-                f" with class {cls.__name__}(model_family={cls.MODEL_FAMILY})."
-            )
+            if manifest.model_family != cls.MODEL_FAMILY:
+                raise ValueError(
+                    f"Cannot load saved model with Manifest(model_family={manifest.model_family})"
+                    f" with class {cls.__name__}(model_family={cls.MODEL_FAMILY})."
+                )
 
-        model = cls._load(path, manifest=manifest)
+            model = cls._load(path, manifest=manifest)
 
         if model.model_id != manifest.model_id:
             raise RuntimeError("'model_id' was overridden during loading.")
