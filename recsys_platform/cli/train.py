@@ -1,5 +1,3 @@
-"""Train, save, and optionally validate a recommender model."""
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
@@ -9,34 +7,8 @@ from recsys_platform.models import Recommender
 from recsys_platform.training import Trainer, TrainerConfig
 
 
-def run_training[RecommenderType: Recommender, ConfigType: TrainerConfig](
-    args: Namespace,
-    *,
-    config_cls: type[ConfigType],
-    trainer_cls: type[Trainer[RecommenderType, ConfigType]],
-) -> None:
-    config = config_cls.load(args.training_config)
-    trainer = trainer_cls(config)
-
-    data = RecommenderDataset(args.dataset)
-    model = trainer.fit(data)
-
-    artifact_path = args.output / model.model_id
-    model.save(artifact_path)
-
-    print(f"Saved model to {artifact_path}")
-
-    if args.validation_dataset is not None:
-        data = RecommenderDataset(args.validation_dataset)
-
-        result = evaluate_model(model, data)
-        print(result)
-
-        result.save(artifact_path / "evaluation.txt")
-
-
-def parse_training_args() -> Namespace:
-    parser = ArgumentParser(description=__doc__)
+def parse_training_args(model_name: str) -> Namespace:
+    parser = ArgumentParser(description=f"Train, save, and validate a {model_name} model.")
 
     parser.add_argument(
         "training_config",
@@ -64,3 +36,29 @@ def parse_training_args() -> Namespace:
     )
 
     return parser.parse_args()
+
+
+def run_training[RecommenderType: Recommender, ConfigType: TrainerConfig](
+    args: Namespace,
+    *,
+    config_cls: type[ConfigType],
+    trainer_cls: type[Trainer[RecommenderType, ConfigType]],
+) -> None:
+    config = config_cls.load(args.training_config)
+    trainer = trainer_cls(config)
+
+    data = RecommenderDataset(args.dataset)
+    model = trainer.fit(data)
+
+    artifact_path = args.output / model.model_id
+    model.save(artifact_path)
+
+    print(f"Saved model to {artifact_path}")
+
+    if args.validation_dataset is not None:
+        data = RecommenderDataset(args.validation_dataset)
+
+        result = evaluate_model(model, data)
+        print(result)
+
+        result.save(artifact_path / "evaluation.txt")

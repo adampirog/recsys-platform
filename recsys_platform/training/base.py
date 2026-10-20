@@ -24,7 +24,7 @@ class TrainerConfig(BaseModel):
 
 
 class Trainer[RecommenderType: Recommender, ConfigType: TrainerConfig](ABC):
-    """Train and evaluate a model-specific recommender."""
+    """Train a model-specific recommender."""
 
     def __init__(self, config: ConfigType) -> None:
         self.config = config

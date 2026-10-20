@@ -1,5 +1,3 @@
-"""Evaluate a serialized popularity recommender."""
-
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
@@ -8,8 +6,8 @@ from recsys_platform.evaluation import evaluate_model
 from recsys_platform.models import Recommender
 
 
-def parse_evaluation_args() -> Namespace:
-    parser = ArgumentParser(description=__doc__)
+def parse_evaluation_args(model_name: str) -> Namespace:
+    parser = ArgumentParser(description=f"Evaluate a serialized {model_name} model")
 
     parser.add_argument(
         "model",
@@ -64,11 +62,7 @@ def run_evaluation[RecommenderType: Recommender](
     data = RecommenderDataset(args.dataset)
 
     result = evaluate_model(
-        model,
-        data,
-        k_values=args.k_values,
-        batch_size=args.batch_size,
-        verbose=args.verbose,
+        model, data, k_values=args.k_values, batch_size=args.batch_size, verbose=args.verbose
     )
 
     print(result)

@@ -1,5 +1,6 @@
 import json
 from collections.abc import Iterator
+from functools import cached_property
 from pathlib import Path
 from typing import Self
 
@@ -13,7 +14,7 @@ from recsys_platform.models import Recommendation, RecommendationRequest, Recomm
 
 
 class FakeDataset(RecommenderDataset):
-    """In-memory dataset for testing generic Trainer evaluation."""
+    """In-memory dataset for testing model evaluation."""
 
     def __init__(self, batches: list[TargetBatch] | None = None) -> None:
         self.batches = (
@@ -36,7 +37,7 @@ class FakeDataset(RecommenderDataset):
 
         self.requested_batch_sizes: list[int] = []
 
-    @property
+    @cached_property
     def n_targets(self) -> int:
         return sum(batch.user_ids.size for batch in self.batches)
 
