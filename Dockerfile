@@ -29,7 +29,7 @@ RUN python -m pip install \
         --no-cache-dir \
         --no-index \
         --find-links=/wheels \
-        "recsys-platform[serving]" \
+        "recsys-platform[serving,popularity-inference]" \
     && rm -rf /wheels \
     && useradd --create-home --uid 10001 appuser \
     && mkdir -p /models \

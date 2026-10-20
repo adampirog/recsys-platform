@@ -16,9 +16,9 @@ dependencies = [
 
 [project.optional-dependencies]
 
-taobao-data = [
-    "polars>=1.44.2",
-    "tzdata",
+serving = [
+    "fastapi>=0.140",
+    "uvicorn>=0.52",
 ]
 
 evaluation = [
@@ -27,19 +27,26 @@ evaluation = [
     "tqdm>=4.67",
 ]
 
-serving = [
-    "fastapi>=0.140",
-    "uvicorn>=0.52",
+taobao-data = [
+    "polars>=1.44.2",
+    "tzdata",
 ]
 
 popularity-inference = []
 
 popularity-training = [
-    "recsys-platform[popularity-inference,evaluation]",
+    "polars>=1.44.2",
+    "prettytable>=3.18",
+    "tqdm>=4.67",
 ]
 
 all = [
-    "recsys-platform[popularity-training,taobao-data,serving]",
+    "polars>=1.44.2",
+    "prettytable>=3.18",
+    "tqdm>=4.67",
+    "tzdata",
+    "fastapi>=0.140",
+    "uvicorn>=0.52",
 ]
 
 [dependency-groups]
