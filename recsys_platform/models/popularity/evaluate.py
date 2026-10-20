@@ -1,4 +1,4 @@
-from recsys_platform.cli import parse_evaluation_args, run_evaluation
+from recsys_platform.cli.evaluate import parse_evaluation_args, run_evaluation
 
 from .model import PopularityRecommender
 

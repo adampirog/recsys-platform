@@ -1,4 +1,4 @@
-from recsys_platform.cli import parse_training_args, run_training
+from recsys_platform.cli.train import parse_training_args, run_training
 
 from .trainer import PopularityTrainer, PopularityTrainerConfig
 

@@ -10,20 +10,36 @@ license-files = ["LICENSE"]
 dynamic = ["version"]
 requires-python = ">=3.13"
 dependencies = [
-    "tzdata",
     "numpy>=2.4",
     "pydantic>=2.12",
-    "prettytable>=3.18",
-    "tqdm>=4.67",
-    "polars>=1.44.2",
 ]
 
 [project.optional-dependencies]
 
-# HTTP serving layer. Model runtimes are installed separately.
+taobao-data = [
+    "polars>=1.44.2",
+    "tzdata",
+]
+
+evaluation = [
+    "polars>=1.44.2",
+    "prettytable>=3.18",
+    "tqdm>=4.67",
+]
+
 serving = [
     "fastapi>=0.140",
     "uvicorn>=0.52",
+]
+
+popularity-inference = []
+
+popularity-training = [
+    "recsys-platform[popularity-inference,evaluation]",
+]
+
+all = [
+    "recsys-platform[popularity-training,taobao-data,serving]",
 ]
 
 [dependency-groups]

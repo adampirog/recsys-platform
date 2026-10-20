@@ -9,7 +9,8 @@ import pytest
 from numpy import testing as npt
 
 from recsys_platform.data import RecommenderDataset, TargetBatch
-from recsys_platform.evaluation import EvaluationResult, evaluate_model
+from recsys_platform.evaluation import EvaluationResult
+from recsys_platform.evaluation.model_evaluation import evaluate_model
 from recsys_platform.models import Recommendation, RecommendationRequest, Recommender
 
 

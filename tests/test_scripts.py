@@ -3,7 +3,8 @@ from pathlib import Path
 
 import numpy as np
 
-from recsys_platform.cli import run_evaluation, run_training
+from recsys_platform.cli.evaluate import run_evaluation
+from recsys_platform.cli.train import run_training
 from recsys_platform.models.popularity import PopularityRecommender
 from recsys_platform.models.popularity.trainer import PopularityTrainer, PopularityTrainerConfig
 

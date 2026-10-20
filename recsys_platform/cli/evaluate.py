@@ -2,7 +2,7 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from recsys_platform.data import RecommenderDataset
-from recsys_platform.evaluation import evaluate_model
+from recsys_platform.evaluation.model_evaluation import evaluate_model
 from recsys_platform.models import Recommender
 
 

@@ -88,7 +88,8 @@ data/splits/
 
 ### 2. Train a model
 
-Training is configured through a JSON file:
+Training is configured through a JSON file containing appropriates model config.
+E.g. -- PopularityRecommender
 
 ```json
 {
