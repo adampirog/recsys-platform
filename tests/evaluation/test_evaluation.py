@@ -1,8 +1,9 @@
 from math import log2
 
+import numpy as np
 import pytest
 
-from recsys_platform.evaluation import evaluate, evaluate_multiple, evaluation
+from recsys_platform.evaluation import evaluate, evaluate_batch_sums, evaluate_multiple, evaluation
 
 
 @pytest.fixture
@@ -231,3 +232,41 @@ def test_builtin_metrics_use_optimized_path(monkeypatch, ranking_case) -> None:
     assert result[1]["precision"] == pytest.approx(1.0)
     assert result[3]["recall"] == pytest.approx(2 / 3)
     assert result[5]["recall"] == pytest.approx(1.0)
+
+
+def test_evaluate_batch_sums_matches_individual_evaluation() -> None:
+    y_true = [
+        np.array([10, 20], dtype=np.uint32),
+        np.array([30], dtype=np.uint32),
+        np.array([40, 50], dtype=np.uint32),
+    ]
+    y_pred = np.array([[10, 99, 20], [99, 30, 98], [40, 98, 50]], dtype=np.uint32)
+    k_values = (1, 3)
+
+    actual = evaluate_batch_sums(y_true=y_true, y_pred=y_pred, k_values=k_values)
+
+    expected = {
+        k: {"precision": 0.0, "recall": 0.0, "hit_rate": 0.0, "ndcg": 0.0} for k in k_values
+    }
+
+    for relevant, predicted in zip(y_true, y_pred, strict=True):
+        result = evaluate_multiple(y_true=relevant, y_pred=predicted, k_values=k_values)
+
+        for k, metrics in result.items():
+            for name, value in metrics.items():
+                expected[k][name] += value
+
+    for k in k_values:
+        assert actual[k] == pytest.approx(expected[k])
+
+
+def test_evaluate_batch_sums_handles_empty_relevance() -> None:
+    y_true = [np.array([], dtype=np.uint32), np.array([10], dtype=np.uint32)]
+    y_pred = np.array([[10, 20], [10, 20]], dtype=np.uint32)
+
+    result = evaluate_batch_sums(y_true=y_true, y_pred=y_pred, k_values=(1, 2))
+
+    assert result[1]["precision"] == pytest.approx(1.0)
+    assert result[1]["recall"] == pytest.approx(1.0)
+    assert result[1]["hit_rate"] == pytest.approx(1.0)
+    assert result[1]["ndcg"] == pytest.approx(1.0)

@@ -55,7 +55,9 @@ def main(args: Namespace) -> None:
     data = PopularityDataset(args.dataset)
     trainer = PopularityTrainer()
 
-    result = trainer.evaluate(model, data, k_values=args.k_values, batch_size=args.batch_size)
+    result = trainer.evaluate(
+        model, data, k_values=args.k_values, batch_size=args.batch_size, verbose=True
+    )
 
     print(result)
 

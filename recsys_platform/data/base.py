@@ -30,6 +30,10 @@ class RecommenderDataset(ABC):
     def __init__(self, path: Path | str) -> None:
         self.path = Path(path)
 
+    @property
+    def n_targets(self) -> int | None:
+        return None
+
     @abstractmethod
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
         """Yield evaluation targets in batches."""

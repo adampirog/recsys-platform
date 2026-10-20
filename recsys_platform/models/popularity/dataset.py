@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from functools import cached_property
 
 import numpy as np
 import polars as pl
@@ -17,6 +18,10 @@ class PopularityDataset(RecommenderDataset):
     def data(self) -> pl.LazyFrame:
         """Return the interaction dataset as a lazy Polars frame."""
         return pl.scan_parquet(self.path)
+
+    @cached_property
+    def n_targets(self) -> int:
+        return self.data.select(pl.col("user_id").n_unique()).collect(engine="streaming").item()
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
         """Yield per-user unique relevant items in batches."""

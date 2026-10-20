@@ -129,3 +129,80 @@ def evaluate_multiple_optimized(
         result[k] = values
 
     return result
+
+
+def evaluate_batch_sums(
+    y_true: list[np.ndarray], y_pred: np.ndarray, k_values: tuple[int, ...]
+) -> dict[int, dict[str, float]]:
+    """Return summed ranking metrics for a batch of users."""
+
+    n_users, n_predictions = y_pred.shape
+    max_k = max(k_values)
+
+    if len(y_true) != n_users:
+        raise ValueError("y_true and y_pred must contain the same number of users.")
+
+    # Relevance is binary.
+    relevant = [np.unique(items) for items in y_true]
+    relevant_counts = np.fromiter((items.size for items in relevant), dtype=np.int64, count=n_users)
+
+    if n_predictions > 1:
+        sorted_predictions = np.sort(y_pred, axis=1)
+        if np.any(np.diff(sorted_predictions, axis=1) == 0):
+            raise ValueError("Predictions contain duplicate item IDs.")
+
+    n_relevant = int(relevant_counts.sum())
+
+    if n_relevant:
+        relevant_items = np.concatenate(relevant).astype(np.uint64, copy=False)
+        relevant_users = np.repeat(np.arange(n_users, dtype=np.uint64), relevant_counts)
+        relevant_keys = (relevant_users << 32) | relevant_items
+    else:
+        relevant_keys = np.empty(0, dtype=np.uint64)
+
+    prediction_users = np.arange(n_users, dtype=np.uint64)[:, None]
+    prediction_keys = (prediction_users << 32) | y_pred.astype(np.uint64, copy=False)
+
+    hits = np.isin(prediction_keys, relevant_keys)
+
+    cumulative_hits = np.cumsum(hits, axis=1, dtype=np.int64)
+
+    discounts = 1.0 / np.log2(np.arange(2, max_k + 2))
+    cumulative_dcg = np.cumsum(hits * discounts[:n_predictions], axis=1)
+    cumulative_idcg = np.cumsum(discounts)
+
+    result: dict[int, dict[str, float]] = {}
+
+    for k in k_values:
+        effective_k = min(k, n_predictions)
+
+        if effective_k:
+            hits_at_k = cumulative_hits[:, effective_k - 1]
+            dcg_at_k = cumulative_dcg[:, effective_k - 1]
+        else:
+            hits_at_k = np.zeros(n_users, dtype=np.int64)
+            dcg_at_k = np.zeros(n_users, dtype=np.float64)
+
+        recall = np.divide(
+            hits_at_k,
+            relevant_counts,
+            out=np.zeros(n_users, dtype=np.float64),
+            where=relevant_counts > 0,
+        )
+
+        ideal_length = np.minimum(relevant_counts, k)
+        idcg = np.zeros(n_users, dtype=np.float64)
+
+        has_relevant = ideal_length > 0
+        idcg[has_relevant] = cumulative_idcg[ideal_length[has_relevant] - 1]
+
+        ndcg = np.divide(dcg_at_k, idcg, out=np.zeros(n_users, dtype=np.float64), where=idcg > 0)
+
+        result[k] = {
+            "precision": float(hits_at_k.sum() / k),
+            "recall": float(recall.sum()),
+            "hit_rate": float(np.count_nonzero(hits_at_k)),
+            "ndcg": float(ndcg.sum()),
+        }
+
+    return result
