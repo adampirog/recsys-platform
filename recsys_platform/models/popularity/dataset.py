@@ -24,8 +24,12 @@ class PopularityDataset(RecommenderDataset):
         return pl.scan_parquet(self.path)
 
     @cached_property
-    def n_targets(self) -> int:
+    def _n_targets(self) -> int:
         return self.data.select(pl.col("user_id").n_unique()).collect(engine="streaming").item()
+
+    @property
+    def n_targets(self) -> int:
+        return self._n_targets
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
         """Yield per-user unique relevant items in batches."""

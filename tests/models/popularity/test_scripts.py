@@ -45,6 +45,7 @@ def test_evaluate_script(
         output=output_path,
         k_values=(2,),
         batch_size=500,
+        verbose=False,
     )
     evaluate_main(args)
 
