@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 
 from recsys_platform.data import RecommenderDataset
 from recsys_platform.evaluation import EvaluationResult
-from recsys_platform.evaluation.evaluation import evaluate_batch_sums
+from recsys_platform.evaluation.evaluation import _evaluate_batch_sums
 from recsys_platform.models import RecommendationRequest, Recommender, TrainingMetadata
 
 
@@ -77,16 +77,14 @@ class Trainer[
         totals = {k: defaultdict(float) for k in k_values}
 
         n_users = 0
-
-        with tqdm(
-            desc="Evaluating", unit="users", disable=not verbose, total=data.n_targets
-        ) as progress:
+        total = data.n_targets if verbose else None
+        with tqdm(desc="Evaluating", unit="users", disable=not verbose, total=total) as progress:
             for targets in data.iter_targets(batch_size):
                 recommendations = model.predict(
                     RecommendationRequest(user_ids=targets.user_ids, k=max_k)
                 )
 
-                batch_totals = evaluate_batch_sums(
+                batch_totals = _evaluate_batch_sums(
                     y_true=targets.relevant_items,
                     y_pred=recommendations.item_ids,
                     k_values=k_values,

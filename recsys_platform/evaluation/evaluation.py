@@ -131,13 +131,14 @@ def evaluate_multiple_optimized(
     return result
 
 
-def evaluate_batch_sums(
+def _evaluate_batch_sums(
     y_true: list[np.ndarray], y_pred: np.ndarray, k_values: tuple[int, ...]
 ) -> dict[int, dict[str, float]]:
     """Return summed ranking metrics for a batch of users."""
 
-    n_users, n_predictions = y_pred.shape
     max_k = max(k_values)
+    y_pred = y_pred[:, :max_k]
+    n_users, n_predictions = y_pred.shape
 
     if len(y_true) != n_users:
         raise ValueError("y_true and y_pred must contain the same number of users.")
@@ -167,7 +168,7 @@ def evaluate_batch_sums(
 
     cumulative_hits = np.cumsum(hits, axis=1, dtype=np.int64)
 
-    discounts = 1.0 / np.log2(np.arange(2, max_k + 2))
+    discounts = _discounts(max_k)
     cumulative_dcg = np.cumsum(hits * discounts[:n_predictions], axis=1)
     cumulative_idcg = np.cumsum(discounts)
 

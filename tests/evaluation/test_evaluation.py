@@ -3,7 +3,8 @@ from math import log2
 import numpy as np
 import pytest
 
-from recsys_platform.evaluation import evaluate, evaluate_batch_sums, evaluate_multiple, evaluation
+from recsys_platform.evaluation import evaluate, evaluate_multiple, evaluation
+from recsys_platform.evaluation.evaluation import _evaluate_batch_sums
 
 
 @pytest.fixture
@@ -243,7 +244,7 @@ def test_evaluate_batch_sums_matches_individual_evaluation() -> None:
     y_pred = np.array([[10, 99, 20], [99, 30, 98], [40, 98, 50]], dtype=np.uint32)
     k_values = (1, 3)
 
-    actual = evaluate_batch_sums(y_true=y_true, y_pred=y_pred, k_values=k_values)
+    actual = _evaluate_batch_sums(y_true=y_true, y_pred=y_pred, k_values=k_values)
 
     expected = {
         k: {"precision": 0.0, "recall": 0.0, "hit_rate": 0.0, "ndcg": 0.0} for k in k_values
@@ -264,7 +265,7 @@ def test_evaluate_batch_sums_handles_empty_relevance() -> None:
     y_true = [np.array([], dtype=np.uint32), np.array([10], dtype=np.uint32)]
     y_pred = np.array([[10, 20], [10, 20]], dtype=np.uint32)
 
-    result = evaluate_batch_sums(y_true=y_true, y_pred=y_pred, k_values=(1, 2))
+    result = _evaluate_batch_sums(y_true=y_true, y_pred=y_pred, k_values=(1, 2))
 
     assert result[1]["precision"] == pytest.approx(1.0)
     assert result[1]["recall"] == pytest.approx(1.0)
