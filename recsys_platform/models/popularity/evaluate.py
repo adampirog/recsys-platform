@@ -46,6 +46,13 @@ def parse_args() -> Namespace:
         metavar="PATH",
         help="Optional result file (.txt or .json).",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        default=False,
+        action="store_true",
+        help="Display progress bar.",
+    )
 
     return parser.parse_args()
 
@@ -56,7 +63,7 @@ def main(args: Namespace) -> None:
     trainer = PopularityTrainer()
 
     result = trainer.evaluate(
-        model, data, k_values=args.k_values, batch_size=args.batch_size, verbose=True
+        model, data, k_values=args.k_values, batch_size=args.batch_size, verbose=args.verbose
     )
 
     print(result)

@@ -131,7 +131,7 @@ def evaluate_multiple_optimized(
     return result
 
 
-def _evaluate_batch_sums(
+def evaluate_batch_sums(
     y_true: list[np.ndarray], y_pred: np.ndarray, k_values: tuple[int, ...]
 ) -> dict[int, dict[str, float]]:
     """Return summed ranking metrics for a batch of users."""
@@ -164,7 +164,7 @@ def _evaluate_batch_sums(
     prediction_users = np.arange(n_users, dtype=np.uint64)[:, None]
     prediction_keys = (prediction_users << 32) | y_pred.astype(np.uint64, copy=False)
 
-    hits = np.isin(prediction_keys, relevant_keys)
+    hits = np.isin(prediction_keys, relevant_keys, assume_unique=True)
 
     cumulative_hits = np.cumsum(hits, axis=1, dtype=np.int64)
 

@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from functools import cached_property
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -13,6 +14,9 @@ class PopularityDataset(RecommenderDataset):
 
     Requires ``user_id`` and ``item_id`` columns; evaluation uses unique items per user.
     """
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
 
     @property
     def data(self) -> pl.LazyFrame:

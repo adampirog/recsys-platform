@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from pathlib import Path
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -27,11 +26,9 @@ class TargetBatch(BaseModel):
 class RecommenderDataset(ABC):
     """Base interface for path-backed recommendation datasets."""
 
-    def __init__(self, path: Path | str) -> None:
-        self.path = Path(path)
-
     @property
     def n_targets(self) -> int | None:
+        """Return the number of logical evaluation targets, if known cheaply."""
         return None
 
     @abstractmethod
