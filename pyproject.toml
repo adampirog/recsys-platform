@@ -12,7 +12,6 @@ requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.4",
     "pydantic>=2.12",
-    "polars>=1.44.2",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +22,7 @@ popularity-inference = []
 # Train and evaluate the popularity model.
 popularity-training = [
     "recsys-platform[popularity-inference,evaluation]",
+    "polars>=1.44.2",
 ]
 
 # Generic evaluation/reporting functionality.
@@ -34,6 +34,7 @@ evaluation = [
 # Taobao dataset preprocessing/splitting.
 taobao-data = [
     "tzdata",
+    "polars>=1.44.2",
 ]
 
 # HTTP serving layer. Model runtimes are installed separately.

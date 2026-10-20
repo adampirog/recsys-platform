@@ -28,9 +28,10 @@ class TargetBatch(BaseModel):
 
 class RecommenderDataset:
     """
-    Base dataset for recommender models
+    Parquet-backed user-item interaction dataset.
 
-    Requires ``user_id`` and ``item_id`` in data columns; evaluation uses unique items per user.
+    Requires ``user_id`` and ``item_id`` columns. Evaluation targets contain
+    the unique items associated with each user.
     """
 
     def __init__(self, path: str | Path) -> None:

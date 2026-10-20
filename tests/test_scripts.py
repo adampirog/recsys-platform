@@ -3,10 +3,9 @@ from pathlib import Path
 
 import numpy as np
 
+from recsys_platform.cli import run_evaluation, run_training
 from recsys_platform.models.popularity import PopularityRecommender
-from recsys_platform.models.popularity.evaluate import main as evaluate_main
-from recsys_platform.models.popularity.train import main as train_main
-from recsys_platform.models.popularity.trainer import PopularityTrainerConfig
+from recsys_platform.models.popularity.trainer import PopularityTrainer, PopularityTrainerConfig
 
 
 def test_train_script(data_path: Path, tmp_path: Path) -> None:
@@ -21,8 +20,7 @@ def test_train_script(data_path: Path, tmp_path: Path) -> None:
         output=model_registry,
     )
 
-    train_main(args)
-
+    run_training(args, config_cls=PopularityTrainerConfig, trainer_cls=PopularityTrainer)
     models = list(model_registry.glob("*"))
     assert len(models) == 1
 
@@ -51,7 +49,7 @@ def test_evaluate_script(data_path: Path, tmp_path: Path) -> None:
         batch_size=500,
         verbose=False,
     )
-    evaluate_main(args)
+    run_evaluation(args, recommender_cls=PopularityRecommender)
 
     assert output_path.exists()
     assert output_path.read_text(encoding="utf-8")

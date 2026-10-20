@@ -8,9 +8,8 @@ import pytest
 from numpy import testing as npt
 
 from recsys_platform.data import RecommenderDataset, TargetBatch
-from recsys_platform.evaluation import EvaluationResult
+from recsys_platform.evaluation import EvaluationResult, evaluate_model
 from recsys_platform.models import Recommendation, RecommendationRequest, Recommender
-from recsys_platform.training import Trainer, TrainerConfig
 
 
 class FakeDataset(RecommenderDataset):
@@ -36,6 +35,10 @@ class FakeDataset(RecommenderDataset):
         )
 
         self.requested_batch_sizes: list[int] = []
+
+    @property
+    def n_targets(self) -> int:
+        return sum(batch.user_ids.size for batch in self.batches)
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
         self.requested_batch_sizes.append(batch_size)
@@ -71,19 +74,10 @@ class FakeRecommender(Recommender):
         raise NotImplementedError
 
 
-class FakeTrainer(Trainer[FakeRecommender, TrainerConfig]):
-    def __init__(self, config: TrainerConfig | None = None) -> None:
-        super().__init__(config or TrainerConfig())
-
-    def fit(self, *args, **kwargs) -> FakeRecommender:
-        return FakeRecommender(model_id="testing")
-
-
 def test_evaluate_macro_averages_user_metrics() -> None:
-    trainer = FakeTrainer()
     model = FakeRecommender(model_id="testing")
 
-    result = trainer.evaluate(model, FakeDataset(), k_values=(1,))
+    result = evaluate_model(model, FakeDataset(), k_values=(1,))
 
     # user 1: hit -> precision=1, recall=1/2
     # user 2: miss -> precision=0, recall=0
@@ -95,11 +89,10 @@ def test_evaluate_macro_averages_user_metrics() -> None:
 
 
 def test_evaluate_predicts_once_per_batch_at_max_k() -> None:
-    trainer = FakeTrainer()
     model = FakeRecommender()
     dataset = FakeDataset()
 
-    result = trainer.evaluate(model, dataset, k_values=(3, 1, 3), batch_size=2)
+    result = evaluate_model(model, dataset, k_values=(3, 1, 3), batch_size=2)
 
     assert list(result) == [1, 3]
 
