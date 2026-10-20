@@ -4,7 +4,7 @@ import polars as pl
 from fastapi.testclient import TestClient
 from numpy import testing as npt
 
-from recsys_platform.models.popularity.dataset import PopularityDataset
+from recsys_platform.data import RecommenderDataset
 from recsys_platform.models.popularity.trainer import PopularityTrainer
 from recsys_platform.serving.app import create_app
 from recsys_platform.serving.manager import ModelManager
@@ -24,7 +24,7 @@ def test_train_save_and_serve_popularity_model(tmp_path: Path) -> None:
     ).write_parquet(data_path)
 
     # Train.
-    model = PopularityTrainer().fit(PopularityDataset(data_path))
+    model = PopularityTrainer().fit(RecommenderDataset(data_path))
 
     # Serialize a real serving artifact.
     model_path = tmp_path / "models"

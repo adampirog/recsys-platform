@@ -27,24 +27,20 @@ class TrainerConfig(BaseModel):
             handle.write(self.model_dump_json(indent=2))
 
 
-class Trainer[
-    DatasetType: RecommenderDataset,
-    RecommenderType: Recommender,
-    ConfigType: TrainerConfig,
-](ABC):
+class Trainer[RecommenderType: Recommender, ConfigType: TrainerConfig](ABC):
     """Train and evaluate a model-specific recommender."""
 
     def __init__(self, config: ConfigType) -> None:
         self.config = config
 
     @abstractmethod
-    def fit(self, data: DatasetType) -> RecommenderType:
+    def fit(self, data: RecommenderDataset) -> RecommenderType:
         """Fit a recommender from the training dataset."""
 
     def evaluate(
         self,
         model: RecommenderType,
-        data: DatasetType,
+        data: RecommenderDataset,
         *,
         k_values: Iterable[int] = (5, 10, 20),
         batch_size: int = 10_000,

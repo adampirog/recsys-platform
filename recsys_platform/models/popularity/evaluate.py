@@ -3,8 +3,8 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
+from recsys_platform.data import RecommenderDataset
 from recsys_platform.models.popularity import PopularityRecommender
-from recsys_platform.models.popularity.dataset import PopularityDataset
 from recsys_platform.models.popularity.trainer import PopularityTrainer
 
 
@@ -59,7 +59,7 @@ def parse_args() -> Namespace:
 
 def main(args: Namespace) -> None:
     model = PopularityRecommender.load(args.model)
-    data = PopularityDataset(args.dataset)
+    data = RecommenderDataset(args.dataset)
     trainer = PopularityTrainer()
 
     result = trainer.evaluate(

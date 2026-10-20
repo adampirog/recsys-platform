@@ -1,11 +1,11 @@
 import numpy as np
 import polars as pl
 
-from recsys_platform.models.popularity.dataset import PopularityDataset
+from recsys_platform.data import RecommenderDataset
 
 
-def test_data_returns_parquet_as_lazy_frame(popularity_dataset: PopularityDataset) -> None:
-    data = popularity_dataset.data
+def test_data_returns_parquet_as_lazy_frame(dataset: RecommenderDataset) -> None:
+    data = dataset.data
 
     assert isinstance(data, pl.LazyFrame)
 
@@ -15,10 +15,8 @@ def test_data_returns_parquet_as_lazy_frame(popularity_dataset: PopularityDatase
     assert result.schema == {"user_id": pl.UInt32, "item_id": pl.UInt32}
 
 
-def test_iter_targets_builds_unique_relevant_items_per_user(
-    popularity_dataset: PopularityDataset,
-) -> None:
-    batches = list(popularity_dataset.iter_targets(batch_size=2))
+def test_iter_targets_builds_unique_relevant_items_per_user(dataset: RecommenderDataset) -> None:
+    batches = list(dataset.iter_targets(batch_size=2))
 
     targets: dict[int, set[int]] = {}
 
@@ -29,15 +27,15 @@ def test_iter_targets_builds_unique_relevant_items_per_user(
     assert targets == {1: {10, 20, 30}, 2: {10, 20}, 3: {10, 30}, 4: {10, 20, 40}}
 
 
-def test_iter_targets_respects_batch_size(popularity_dataset: PopularityDataset) -> None:
-    batches = list(popularity_dataset.iter_targets(batch_size=2))
+def test_iter_targets_respects_batch_size(dataset: RecommenderDataset) -> None:
+    batches = list(dataset.iter_targets(batch_size=2))
 
     assert len(batches) == 2
     assert all(batch.user_ids.size <= 2 for batch in batches)
 
 
-def test_iter_targets_uses_expected_dtypes(popularity_dataset: PopularityDataset) -> None:
-    batches = list(popularity_dataset.iter_targets(batch_size=4))
+def test_iter_targets_uses_expected_dtypes(dataset: RecommenderDataset) -> None:
+    batches = list(dataset.iter_targets(batch_size=4))
 
     assert len(batches) == 1
 

@@ -41,8 +41,13 @@ class RecommenderDataset:
         """Return the interaction dataset as a lazy Polars frame."""
         return pl.scan_parquet(self.path)
 
+    @property
+    def n_targets(self) -> int | None:
+        """Return the number of logical evaluation targets, if known cheaply."""
+        return self._n_targets
+
     @cached_property
-    def n_targets(self) -> int:
+    def _n_targets(self) -> int:
         return self.data.select(pl.col("user_id").n_unique()).collect(engine="streaming").item()
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:

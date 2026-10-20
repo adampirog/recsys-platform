@@ -71,11 +71,11 @@ class FakeRecommender(Recommender):
         raise NotImplementedError
 
 
-class FakeTrainer(Trainer[FakeDataset, FakeRecommender, TrainerConfig]):
+class FakeTrainer(Trainer[FakeRecommender, TrainerConfig]):
     def __init__(self, config: TrainerConfig | None = None) -> None:
         super().__init__(config or TrainerConfig())
 
-    def fit(self, data: FakeDataset) -> FakeRecommender:
+    def fit(self, *args, **kwargs) -> FakeRecommender:
         return FakeRecommender(model_id="testing")
 
 

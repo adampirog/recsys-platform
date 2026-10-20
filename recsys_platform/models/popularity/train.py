@@ -3,7 +3,7 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from recsys_platform.models.popularity.dataset import PopularityDataset
+from recsys_platform.data import RecommenderDataset
 from recsys_platform.models.popularity.trainer import (
     PopularityTrainer,
     PopularityTrainerConfig,
@@ -45,7 +45,7 @@ def main(args: Namespace) -> None:
     config = PopularityTrainerConfig.load(args.training_config)
     trainer = PopularityTrainer(config)
 
-    data = PopularityDataset(args.dataset)
+    data = RecommenderDataset(args.dataset)
     model = trainer.fit(data)
 
     artifact_path = args.output / model.model_id
@@ -54,7 +54,7 @@ def main(args: Namespace) -> None:
     print(f"Saved model to {artifact_path}")
 
     if args.validation_dataset is not None:
-        data = PopularityDataset(args.validation_dataset)
+        data = RecommenderDataset(args.validation_dataset)
 
         result = trainer.evaluate(model, data)
         print(result)

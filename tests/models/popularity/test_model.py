@@ -1,8 +1,18 @@
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 from recsys_platform.models import RecommendationRequest
 from recsys_platform.models.popularity import PopularityRecommender
+
+
+@pytest.fixture(scope="module")
+def popularity_model() -> PopularityRecommender:
+    return PopularityRecommender(
+        model_id="testing",
+        item_ids=np.array([10, 20, 30, 40], dtype=np.uint32),
+        scores=np.array([1.0, 0.6, 0.4, 0.4], dtype=np.float32),
+    )
 
 
 def test_predict_returns_top_k_for_each_user(popularity_model: PopularityRecommender) -> None:
