@@ -13,8 +13,8 @@ from recsys_platform.models import (
 from recsys_platform.types import Float32Matrix, Float32Vector, UInt32Vector
 
 
-class ALSRecommender(Recommender):
-    MODEL_FAMILY = "als"
+class MatrixFactorizationRecommender(Recommender):
+    MODEL_FAMILY = "matrix_factorization"
     ARTIFACT_VERSION = "0.1.0"
 
     def __init__(

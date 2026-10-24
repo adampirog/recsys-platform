@@ -3,12 +3,12 @@ import numpy.testing as npt
 import pytest
 
 from recsys_platform.models import RecommendationRequest
-from recsys_platform.models.als import ALSRecommender
+from recsys_platform.models.matrix_factorization import MatrixFactorizationRecommender
 
 
 @pytest.fixture
-def model() -> ALSRecommender:
-    return ALSRecommender(
+def model() -> MatrixFactorizationRecommender:
+    return MatrixFactorizationRecommender(
         model_id="testing",
         user_ids=np.array([10, 20], dtype=np.uint32),
         item_ids=np.array([100, 200, 300], dtype=np.uint32),
@@ -24,14 +24,14 @@ def model() -> ALSRecommender:
     )
 
 
-def test_predict_returns_personalized_top_k(model: ALSRecommender) -> None:
+def test_predict_returns_personalized_top_k(model: MatrixFactorizationRecommender) -> None:
     result = model.predict(RecommendationRequest(user_ids=np.array([20, 10], dtype=np.uint32), k=2))
 
     npt.assert_array_equal(result.item_ids, np.array([[200, 300], [100, 300]], dtype=np.uint32))
     npt.assert_allclose(result.scores, np.array([[1.0, 0.5], [1.0, 0.5]], dtype=np.float32))
 
 
-def test_predict_caps_k_at_number_of_items(model: ALSRecommender) -> None:
+def test_predict_caps_k_at_number_of_items(model: MatrixFactorizationRecommender) -> None:
     result = model.predict(RecommendationRequest(user_ids=np.array([10], dtype=np.uint32), k=10))
 
     npt.assert_array_equal(result.item_ids, np.array([[100, 300, 200]], dtype=np.uint32))
@@ -40,17 +40,17 @@ def test_predict_caps_k_at_number_of_items(model: ALSRecommender) -> None:
     assert result.scores.shape == (1, 3)
 
 
-def test_predict_rejects_unknown_user(model: ALSRecommender) -> None:
+def test_predict_rejects_unknown_user(model: MatrixFactorizationRecommender) -> None:
     request = RecommendationRequest(user_ids=np.array([10, 999], dtype=np.uint32), k=2)
 
     with pytest.raises(ValueError, match="Unknown user_id: 999"):
         model.predict(request)
 
 
-def test_save_load_round_trip(model: ALSRecommender, tmp_path) -> None:
+def test_save_load_round_trip(model: MatrixFactorizationRecommender, tmp_path) -> None:
     model.save(tmp_path)
 
-    loaded = ALSRecommender.load(tmp_path)
+    loaded = MatrixFactorizationRecommender.load(tmp_path)
 
     assert loaded.model_id == model.model_id
 
@@ -62,7 +62,7 @@ def test_save_load_round_trip(model: ALSRecommender, tmp_path) -> None:
 
 def test_rejects_incompatible_embedding_dimensions() -> None:
     with pytest.raises(ValueError, match="User and item embeddings must have the same dimension"):
-        ALSRecommender(
+        MatrixFactorizationRecommender(
             user_ids=np.array([10], dtype=np.uint32),
             item_ids=np.array([100], dtype=np.uint32),
             user_embeddings=np.ones((1, 2), dtype=np.float32),
