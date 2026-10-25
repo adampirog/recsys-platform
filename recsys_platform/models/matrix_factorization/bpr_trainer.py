@@ -5,21 +5,19 @@ from implicit.bpr import BayesianPersonalizedRanking
 from pydantic import Field
 
 from recsys_platform.data import RecommenderDataset
-from recsys_platform.training import TrainerConfig
 
 from .model import MatrixFactorizationRecommender
-from .trainer import MatrixFactorizationTrainer
+from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfig
 
 
-class BPRTrainerConfig(TrainerConfig):
+class BPRTrainerConfig(MatrixFactorizationTrainerConfig):
     embedding_size: Annotated[int, Field(gt=0)] = 64
     regularization: Annotated[float, Field(gt=0)] = 0.01
     learning_rate: Annotated[float, Field(gt=0)] = 0.01
     iterations: Annotated[int, Field(gt=0)] = 20
-    random_state: int | None = 42
 
 
-class ALSTrainer(MatrixFactorizationTrainer[BPRTrainerConfig]):
+class BPRTrainer(MatrixFactorizationTrainer[BPRTrainerConfig]):
     def __init__(self, config: BPRTrainerConfig | None = None) -> None:
         super().__init__(config=config or BPRTrainerConfig())
 

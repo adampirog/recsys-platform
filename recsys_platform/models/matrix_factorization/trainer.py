@@ -1,4 +1,7 @@
+from typing import Annotated
+
 import numpy as np
+from pydantic import BeforeValidator, Field
 from scipy.sparse import csr_matrix
 
 from recsys_platform.data import RecommenderDataset
@@ -8,7 +11,24 @@ from recsys_platform.types import UInt32Vector
 from .model import MatrixFactorizationRecommender
 
 
-class MatrixFactorizationTrainer[ConfigType: TrainerConfig](
+def _scikit_to_implicit_api(n_jobs: int) -> int:
+    """
+    Translate number of threads arg from scikit to implicit api
+
+    scikit: max threads = -1
+    implicit: max_threads = 0
+    """
+    if n_jobs < 0:
+        return 0
+    return n_jobs
+
+
+class MatrixFactorizationTrainerConfig(TrainerConfig):
+    random_state: int | None = None
+    n_jobs: Annotated[int, Field(gt=0), BeforeValidator(_scikit_to_implicit_api)] = -1
+
+
+class MatrixFactorizationTrainer[ConfigType: MatrixFactorizationTrainerConfig](
     Trainer[MatrixFactorizationRecommender, ConfigType]
 ):
     """Base trainer for matrix-factorization recommenders."""
