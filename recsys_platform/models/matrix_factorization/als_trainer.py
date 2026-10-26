@@ -29,7 +29,7 @@ class ALSTrainer(MatrixFactorizationTrainer[ALSTrainerConfig]):
             regularization=self.config.regularization,
             alpha=self.config.alpha,
             iterations=self.config.iterations,
-            num_threads=self.config.n_jobs,
+            num_threads=self.config.num_threads,
             random_state=self.config.random_state,
             dtype=np.float32,
         )

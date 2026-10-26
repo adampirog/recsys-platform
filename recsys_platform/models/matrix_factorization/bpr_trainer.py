@@ -31,7 +31,7 @@ class BPRTrainer(MatrixFactorizationTrainer[BPRTrainerConfig]):
             regularization=self.config.regularization,
             iterations=self.config.iterations,
             verify_negative_samples=self.config.verify_negative_samples,
-            num_threads=self.config.n_jobs,
+            num_threads=self.config.num_threads,
             random_state=self.config.random_state,
             dtype=np.float32,
         )

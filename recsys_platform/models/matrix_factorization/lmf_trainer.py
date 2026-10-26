@@ -31,7 +31,7 @@ class LMFTrainer(MatrixFactorizationTrainer[LMFTrainerConfig]):
             regularization=self.config.regularization,
             iterations=self.config.iterations,
             neg_prop=self.config.negative_sample_ratio,
-            num_threads=self.config.n_jobs,
+            num_threads=self.config.num_threads,
             random_state=self.config.random_state,
             dtype=np.float32,
         )
