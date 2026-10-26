@@ -15,6 +15,7 @@ class BPRTrainerConfig(MatrixFactorizationTrainerConfig):
     regularization: Annotated[float, Field(gt=0)] = 0.01
     learning_rate: Annotated[float, Field(gt=0)] = 0.01
     iterations: Annotated[int, Field(gt=0)] = 20
+    verify_negative_samples: bool = True
 
 
 class BPRTrainer(MatrixFactorizationTrainer[BPRTrainerConfig]):
@@ -26,12 +27,13 @@ class BPRTrainer(MatrixFactorizationTrainer[BPRTrainerConfig]):
 
         bpr = BayesianPersonalizedRanking(
             factors=self.config.embedding_size,
-            regularization=self.config.regularization,
             learning_rate=self.config.learning_rate,
+            regularization=self.config.regularization,
             iterations=self.config.iterations,
-            dtype=np.float32,
-            use_gpu=False,
+            verify_negative_samples=self.config.verify_negative_samples,
+            num_threads=self.config.n_jobs,
             random_state=self.config.random_state,
+            dtype=np.float32,
         )
 
         bpr.fit(user_items)

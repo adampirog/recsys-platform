@@ -15,7 +15,7 @@ class LMFTrainerConfig(MatrixFactorizationTrainerConfig):
     learning_rate: Annotated[float, Field(gt=0)] = 1.0
     regularization: Annotated[float, Field(gt=0)] = 0.6
     iterations: Annotated[int, Field(gt=0)] = 30
-    negative_samples: Annotated[int, Field(gt=0)] = 30
+    negative_sample_ratio: Annotated[int, Field(gt=0)] = 30
 
 
 class LMFTrainer(MatrixFactorizationTrainer[LMFTrainerConfig]):
@@ -27,12 +27,13 @@ class LMFTrainer(MatrixFactorizationTrainer[LMFTrainerConfig]):
 
         lmf = LogisticMatrixFactorization(
             factors=self.config.embedding_size,
-            regularization=self.config.regularization,
             learning_rate=self.config.learning_rate,
+            regularization=self.config.regularization,
             iterations=self.config.iterations,
-            dtype=np.float32,
-            use_gpu=False,
+            neg_prop=self.config.negative_sample_ratio,
+            num_threads=self.config.n_jobs,
             random_state=self.config.random_state,
+            dtype=np.float32,
         )
 
         lmf.fit(user_items)

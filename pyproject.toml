@@ -46,7 +46,7 @@ matrix-factorization-inference = []
 
 matrix-factorization-training = [
     "recsys-platform[matrix-factorization-inference,evaluation]",
-    "scipy",
+    "scipy>=1.18",
     "implicit>=0.7.3",
 ]
 

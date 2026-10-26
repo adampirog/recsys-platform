@@ -13,9 +13,8 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 class ALSTrainerConfig(MatrixFactorizationTrainerConfig):
     embedding_size: Annotated[int, Field(gt=0)] = 64
     regularization: Annotated[float, Field(gt=0)] = 0.01
-    alpha: Annotated[float, Field(gt=0)] = 40.0
+    alpha: Annotated[float, Field(gt=0)] = 20.0
     iterations: Annotated[int, Field(gt=0)] = 20
-    random_state: int | None = 42
 
 
 class ALSTrainer(MatrixFactorizationTrainer[ALSTrainerConfig]):
@@ -30,9 +29,9 @@ class ALSTrainer(MatrixFactorizationTrainer[ALSTrainerConfig]):
             regularization=self.config.regularization,
             alpha=self.config.alpha,
             iterations=self.config.iterations,
-            dtype=np.float32,
-            use_gpu=False,
+            num_threads=self.config.n_jobs,
             random_state=self.config.random_state,
+            dtype=np.float32,
         )
 
         als.fit(user_items)
