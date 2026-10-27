@@ -44,11 +44,6 @@ def parse_args() -> Namespace:
         help="Path to the mixed validation or test Parquet dataset.",
     )
     parser.add_argument(
-        "output",
-        type=Path,
-        help="Directory for evaluation cohorts.",
-    )
-    parser.add_argument(
         "--skip-summary",
         default=False,
         action="store_true",
@@ -67,20 +62,17 @@ def main(args: Namespace) -> None:
     warm = mixed.join(known_users, on="user_id", how="semi")
     cold = mixed.join(known_users, on="user_id", how="anti")
 
+    root = args.dataset.parent
     name = args.dataset.stem
-    warm.sink_parquet(args.output / f"{name}_warm.parquet", mkdir=True, engine="streaming")
-    cold.sink_parquet(args.output / f"{name}_cold.parquet", mkdir=True, engine="streaming")
+    warm.sink_parquet(root / f"{name}_warm.parquet", mkdir=True, engine="streaming")
+    cold.sink_parquet(root / f"{name}_cold.parquet", mkdir=True, engine="streaming")
 
-    print(f"Saved datasets to {args.output}")
+    print(f"Saved datasets to '{root}/'")
 
     if not args.skip_summary:
         print()
         print_summary(mixed, warm, cold)
 
 
-def cli() -> None:
-    main(parse_args())
-
-
 if __name__ == "__main__":
-    cli()
+    main(parse_args())

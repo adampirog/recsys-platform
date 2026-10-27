@@ -1,11 +1,11 @@
-"""Create a reproducible user-sampled version of the cleaned Taobao dataset."""
+"""Create a user-sampled version of the cleaned Taobao dataset."""
 
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from pathlib import Path
 
 import polars as pl
 
-from .preprocessing import dataset_overview, user_activity_summary
+from .preprocessing import print_short_summary
 
 
 def parse_args() -> Namespace:
@@ -22,10 +22,11 @@ def parse_args() -> Namespace:
         help="Path for the sampled Parquet dataset.",
     )
     parser.add_argument(
-        "users",
+        "--n-users",
         type=float,
         metavar="N",
-        help="Number (or fraction) of training users to sample.",
+        default=0.2,
+        help="Number (or fraction) of users to sample (default: %(default)s).",
     )
     parser.add_argument(
         "--random-state",
@@ -64,23 +65,14 @@ def resolve_sample_size(n_users: int, sample_size: float) -> int:
     return resolved
 
 
-def print_summary(df: pl.LazyFrame) -> None:
-    """Print a short summary of the sampled dataset."""
-    print("=== OVERVIEW ===")
-    print(dataset_overview(df))
-
-    print("\n=== USER ACTIVITY ===")
-    print(user_activity_summary(df))
-
-
 def main(args: Namespace) -> None:
     df = pl.scan_parquet(args.dataset)
 
     users = get_users(df)
-    n_users = resolve_sample_size(users.height, args.users)
+    n_users = resolve_sample_size(users.height, args.n_users)
     sampled_users = users.sample(n=n_users, seed=args.random_state, shuffle=True)
 
-    sampled = df.join(users.lazy(), on="user_id", how="semi")
+    sampled = df.join(sampled_users.lazy(), on="user_id", how="semi")
     sampled.sink_parquet(args.output, mkdir=True, engine="streaming")
 
     print(f"Sampled {sampled_users.height:,} of {users.height:,} users.")
@@ -88,12 +80,8 @@ def main(args: Namespace) -> None:
 
     if not args.skip_summary:
         print()
-        print_summary(pl.scan_parquet(args.output))
-
-
-def cli() -> None:
-    main(parse_args())
+        print_short_summary(sampled)
 
 
 if __name__ == "__main__":
-    cli()
+    main(parse_args())
