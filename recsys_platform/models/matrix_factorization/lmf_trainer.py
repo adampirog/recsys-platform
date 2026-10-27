@@ -38,10 +38,16 @@ class LMFTrainer(MatrixFactorizationTrainer[LMFTrainerConfig]):
 
         lmf.fit(user_items)
 
+        fallback_predictions, fallback_scores = self._get_fallback_predictions(
+            data, max_items=self.config.fallback_items
+        )
+
         return MatrixFactorizationRecommender(
             user_ids=user_ids,
             item_ids=item_ids,
             user_embeddings=lmf.user_factors.astype(np.float32, copy=False),
             item_embeddings=lmf.item_factors.astype(np.float32, copy=False),
+            fallback_predictions=fallback_predictions,
+            fallback_scores=fallback_scores,
             training_metadata=self.get_metadata(),
         )

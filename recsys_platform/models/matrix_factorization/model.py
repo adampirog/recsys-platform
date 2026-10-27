@@ -136,7 +136,7 @@ class MatrixFactorizationRecommender(Recommender):
                 item_ids=state["item_ids"].astype(np.uint32, copy=False),
                 user_embeddings=state["user_embeddings"].astype(np.float32, copy=False),
                 item_embeddings=state["item_embeddings"].astype(np.float32, copy=False),
-                fallback_predictions=state["user_predictions"].astype(np.float32, copy=False),
+                fallback_predictions=state["fallback_predictions"].astype(np.uint32, copy=False),
                 fallback_scores=state["fallback_scores"].astype(np.float32, copy=False),
             )
 
