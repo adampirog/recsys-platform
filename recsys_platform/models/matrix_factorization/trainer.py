@@ -1,16 +1,18 @@
 import os
 
 import numpy as np
+import polars as pl
 from scipy.sparse import csr_matrix
 
 from recsys_platform.data import RecommenderDataset
 from recsys_platform.training import Trainer, TrainerConfig
-from recsys_platform.types import UInt32Vector
+from recsys_platform.types import Float32Vector, UInt32Vector
 
 from .model import MatrixFactorizationRecommender
 
 
 class MatrixFactorizationTrainerConfig(TrainerConfig):
+    fallback_items: int = 20
     random_state: int | None = None
     n_jobs: int = -1
 
@@ -40,6 +42,23 @@ class MatrixFactorizationTrainer[ConfigType: MatrixFactorizationTrainerConfig](
     Trainer[MatrixFactorizationRecommender, ConfigType]
 ):
     """Base trainer for matrix-factorization recommenders."""
+
+    def _get_fallback_predictions(
+        self, data: RecommenderDataset, max_items: int = 20
+    ) -> tuple[UInt32Vector, Float32Vector]:
+        popularity = (
+            data.data.group_by("item_id")
+            .len()
+            .sort(["len", "item_id"], descending=[True, False])
+            .with_columns((pl.col("len") / pl.col("len").max()).alias("score"))
+            .select("item_id", "score")
+            .head(max_items)
+            .collect(engine="streaming")
+        )
+        item_ids = popularity["item_id"].to_numpy().astype(np.uint32, copy=False)
+        scores = popularity["score"].to_numpy().astype(np.float32, copy=False)
+
+        return item_ids, scores
 
     def _build_user_item_matrix(
         self, data: RecommenderDataset

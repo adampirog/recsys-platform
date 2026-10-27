@@ -23,6 +23,8 @@ class MatrixFactorizationRecommender(Recommender):
         item_ids: UInt32Vector,
         user_embeddings: Float32Matrix,
         item_embeddings: Float32Matrix,
+        fallback_predictions: UInt32Vector,
+        fallback_scores: Float32Vector,
         *,
         training_metadata: TrainingMetadata | None = None,
         model_id: str | None = None,
@@ -34,6 +36,9 @@ class MatrixFactorizationRecommender(Recommender):
 
         self.item_embeddings = item_embeddings
         self.user_embeddings = user_embeddings
+
+        self.fallback_predictions = fallback_predictions
+        self.fallback_scores = fallback_scores
 
         if self.user_embeddings.shape[0] != self.user_ids.size:
             raise ValueError("user_embeddings must contain one row per user.")
@@ -99,10 +104,11 @@ class MatrixFactorizationRecommender(Recommender):
         scores = np.empty((request.user_ids.size, n_recommendations), dtype=np.float32)
 
         for row in range(request.user_ids.size):
-            if not known[row]:
-                raise ValueError(f"Unknown user_id: {request.user_ids[row]}")
-
-            row_items, row_scores = self._recommend_user(internal_ids[row], n_recommendations)
+            if known[row]:
+                row_items, row_scores = self._recommend_user(internal_ids[row], n_recommendations)
+            else:
+                row_items = self.fallback_predictions[:n_recommendations]
+                row_scores = self.fallback_scores[:n_recommendations]
 
             item_ids[row] = row_items
             scores[row] = row_scores
@@ -116,6 +122,8 @@ class MatrixFactorizationRecommender(Recommender):
             item_ids=self.item_ids,
             user_embeddings=self.user_embeddings,
             item_embeddings=self.item_embeddings,
+            fallback_scores=self.fallback_scores,
+            fallback_predictions=self.fallback_predictions,
         )
 
     @classmethod
@@ -128,6 +136,8 @@ class MatrixFactorizationRecommender(Recommender):
                 item_ids=state["item_ids"].astype(np.uint32, copy=False),
                 user_embeddings=state["user_embeddings"].astype(np.float32, copy=False),
                 item_embeddings=state["item_embeddings"].astype(np.float32, copy=False),
+                fallback_predictions=state["user_predictions"].astype(np.float32, copy=False),
+                fallback_scores=state["fallback_scores"].astype(np.float32, copy=False),
             )
 
         return model
