@@ -73,5 +73,10 @@ def create_default_registry() -> ModelRegistry:
         module="recsys_platform.models.popularity.model",
         class_name="PopularityRecommender",
     )
+    registry.register(
+        "matrix_factorization",
+        module="recsys_platform.models.matrix_factorization.model",
+        class_name="MatrixFactorizationRecommender",
+    )
 
     return registry

@@ -12,7 +12,7 @@ COPY recsys_platform ./recsys_platform
 
 RUN python -m pip wheel \
     --wheel-dir /wheels \
-    ".[serving,popularity-inference]"
+    ".[serving,popularity-inference,matrix-factorization-inference]"
 
 
 FROM python:3.13-slim AS runtime
@@ -29,7 +29,7 @@ RUN python -m pip install \
         --no-cache-dir \
         --no-index \
         --find-links=/wheels \
-        "recsys-platform[serving,popularity-inference]" \
+        "recsys-platform[serving,popularity-inference,matrix-factorization-inference]" \
     && rm -rf /wheels \
     && useradd --create-home --uid 10001 appuser \
     && mkdir -p /models \

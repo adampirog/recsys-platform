@@ -1,127 +1,87 @@
+import os
+
 import numpy as np
-import polars as pl
-from numpy import testing as npt
+import numpy.testing as npt
+import pytest
 
 from recsys_platform.data import RecommenderDataset
 from recsys_platform.models.matrix_factorization import MatrixFactorizationRecommender
 from recsys_platform.models.matrix_factorization.als_trainer import ALSTrainer, ALSTrainerConfig
 from recsys_platform.models.matrix_factorization.bpr_trainer import BPRTrainer, BPRTrainerConfig
 from recsys_platform.models.matrix_factorization.lmf_trainer import LMFTrainer, LMFTrainerConfig
-from recsys_platform.models.matrix_factorization.trainer import (
-    MatrixFactorizationTrainer,
-    MatrixFactorizationTrainerConfig,
+from recsys_platform.models.matrix_factorization.trainer import MatrixFactorizationTrainerConfig
+
+
+def test_build_user_item_matrix(dataset: RecommenderDataset) -> None:
+    trainer = ALSTrainer()
+    matrix, user_ids, item_ids = trainer._build_user_item_matrix(dataset)
+
+    npt.assert_array_equal(user_ids, np.array([1, 2, 3, 4], dtype=np.uint32))
+    npt.assert_array_equal(item_ids, np.array([10, 20, 30, 40], dtype=np.uint32))
+
+    npt.assert_array_equal(
+        matrix.toarray(),
+        np.array(
+            [
+                [2, 1, 1, 0],
+                [1, 1, 0, 0],
+                [1, 0, 1, 0],
+                [1, 1, 0, 2],
+            ],
+            dtype=np.float32,
+        ),
+    )
+
+
+def test_n_jobs_uses_scikit_semantics(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 8)
+
+    assert MatrixFactorizationTrainerConfig(n_jobs=1).num_threads == 1
+    assert MatrixFactorizationTrainerConfig(n_jobs=4).num_threads == 4
+    assert MatrixFactorizationTrainerConfig(n_jobs=-1).num_threads == 0
+    assert MatrixFactorizationTrainerConfig(n_jobs=-2).num_threads == 7
+
+
+@pytest.mark.parametrize(
+    ("trainer", "config"),
+    [
+        (
+            ALSTrainer,
+            ALSTrainerConfig(embedding_size=4, iterations=2, n_jobs=1, random_state=42),
+        ),
+        (
+            BPRTrainer,
+            BPRTrainerConfig(embedding_size=4, iterations=2, n_jobs=1, random_state=42),
+        ),
+        (
+            LMFTrainer,
+            LMFTrainerConfig(
+                embedding_size=4, iterations=2, negative_sample_ratio=1, n_jobs=1, random_state=42
+            ),
+        ),
+    ],
+    ids=["als", "bpr", "lmf"],
 )
-
-
-class TestTrainer(MatrixFactorizationTrainer[MatrixFactorizationTrainerConfig]):
-    def fit(self, data: RecommenderDataset) -> MatrixFactorizationRecommender:
-        raise NotImplementedError
-
-
-def test_build_user_item_matrix_aggregates_interactions(tmp_path) -> None:
-    path = tmp_path / "interactions.parquet"
-
-    pl.DataFrame({"user_id": [20, 10, 10, 20], "item_id": [200, 100, 100, 100]}).write_parquet(path)
-
-    trainer = TestTrainer(MatrixFactorizationTrainerConfig())
-    matrix, user_ids, item_ids = trainer._build_user_item_matrix(RecommenderDataset(path))
-
-    npt.assert_array_equal(user_ids, np.array([10, 20], dtype=np.uint32))
-    npt.assert_array_equal(item_ids, np.array([100, 200], dtype=np.uint32))
-
-    npt.assert_array_equal(matrix.toarray(), np.array([[2.0, 0.0], [1.0, 1.0]], dtype=np.float32))
-
-
-def test_als_fit_builds_recommender(monkeypatch, dataset) -> None:
-    captured = {}
-
-    class FakeALS:
-        user_factors = np.ones((2, 3), dtype=np.float32)
-        item_factors = np.ones((3, 3), dtype=np.float32)
-
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
-        def fit(self, user_items):
-            assert user_items.shape == (2, 3)
-
-    monkeypatch.setattr(
-        "recsys_platform.models.matrix_factorization.als_trainer.AlternatingLeastSquares", FakeALS
-    )
-
-    trainer = ALSTrainer(
-        ALSTrainerConfig(embedding_size=3, alpha=10.0, iterations=5, n_jobs=4, random_state=42)
-    )
-
-    model = trainer.fit(dataset)
+def test_fit_returns_matrix_factorization_recommender(
+    trainer, config, dataset: RecommenderDataset
+) -> None:
+    model = trainer(config).fit(dataset)
 
     assert isinstance(model, MatrixFactorizationRecommender)
-    assert captured["factors"] == 3
-    assert captured["alpha"] == 10.0
-    assert captured["iterations"] == 5
-    assert captured["num_threads"] == 4
 
-    assert model.user_embeddings.shape == (2, 3)
-    assert model.item_embeddings.shape == (3, 3)
+    npt.assert_array_equal(model.user_ids, np.array([1, 2, 3, 4], dtype=np.uint32))
+    npt.assert_array_equal(model.item_ids, np.array([10, 20, 30, 40], dtype=np.uint32))
 
+    assert model.user_embeddings.shape[0] == 4
+    assert model.item_embeddings.shape[0] == 4
+    assert model.user_embeddings.shape[1] == model.item_embeddings.shape[1]
 
-def test_bpr_fit_builds_recommender(monkeypatch, dataset) -> None:
-    captured = {}
+    assert model.user_embeddings.dtype == np.float32
+    assert model.item_embeddings.dtype == np.float32
 
-    class FakeBPR:
-        user_factors = np.ones((2, 4), dtype=np.float32)
-        item_factors = np.ones((3, 4), dtype=np.float32)
+    assert np.isfinite(model.user_embeddings).all()
+    assert np.isfinite(model.item_embeddings).all()
 
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
-        def fit(self, user_items):
-            assert user_items.shape == (2, 3)
-
-    monkeypatch.setattr(
-        "recsys_platform.models.matrix_factorization.bpr_trainer.BayesianPersonalizedRanking",
-        FakeBPR,
-    )
-
-    trainer = BPRTrainer(
-        BPRTrainerConfig(embedding_size=3, learning_rate=0.05, n_jobs=2, random_state=42)
-    )
-
-    model = trainer.fit(dataset)
-
-    assert isinstance(model, MatrixFactorizationRecommender)
-    assert captured["factors"] == 3
-    assert captured["learning_rate"] == 0.05
-    assert captured["num_threads"] == 2
-
-    npt.assert_array_equal(model.user_ids, np.array([10, 20], dtype=np.uint32))
-
-
-def test_lmf_fit_builds_recommender(monkeypatch, dataset) -> None:
-    captured = {}
-
-    class FakeLMF:
-        user_factors = np.ones((2, 3), dtype=np.float32)
-        item_factors = np.ones((3, 3), dtype=np.float32)
-
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
-        def fit(self, user_items):
-            assert user_items.shape == (2, 3)
-
-    monkeypatch.setattr(
-        "recsys_platform.models.matrix_factorization.lmf_trainer.LogisticMatrixFactorization",
-        FakeLMF,
-    )
-
-    trainer = LMFTrainer(
-        LMFTrainerConfig(embedding_size=3, negative_sample_ratio=7, n_jobs=-1, random_state=42)
-    )
-
-    model = trainer.fit(dataset)
-
-    assert isinstance(model, MatrixFactorizationRecommender)
-    assert captured["factors"] == 3
-    assert captured["neg_prop"] == 7
-    assert captured["num_threads"] == 0
+    assert model.training_metadata is not None
+    assert model.training_metadata.config == config.model_dump(mode="json")
+    assert model.training_metadata.trainer.endswith(f".{trainer.__name__}")

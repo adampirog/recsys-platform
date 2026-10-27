@@ -21,10 +21,10 @@ class MatrixFactorizationTrainerConfig(TrainerConfig):
     @staticmethod
     def _n_jobs_to_num_threads(n_jobs: int) -> int:
         """
-        Translate number of threads arg from scikit to implicit api
+        Translate scikit-style ``n_jobs`` to implicit's ``num_threads``.
 
-        scikit: max threads = -1
-        implicit: max_threads = 0
+        ``n_jobs=-1`` uses all available CPUs, while implicit represents
+        this as ``num_threads=0``.
         """
         if n_jobs == -1:
             return 0

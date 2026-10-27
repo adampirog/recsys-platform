@@ -14,8 +14,9 @@ _The current V1 uses a global popularity model as a simple baseline while the in
 ## Highlights
 
 - Generic `Recommender`, `Trainer`, and dataset interfaces
+- Personalized matrix factorization with ALS, BPR, and Logistic MF
+- Shared embedding-based inference artifact across MF training algorithms
 - CLI workflows for data preparation, training, evaluation, and serving
-- Batched NumPy inference
 - Recommendation metrics: Precision@K, Recall@K, HitRate@K, and NDCG@K
 - Versioned model artifacts with training metadata
 - FastAPI serving with lazy model loading
@@ -167,7 +168,10 @@ _The runtime image contains only serving and inference dependencies._
 ### Models
 
 - [x] Global popularity baseline
-- [ ] Collaborative filtering / matrix factorization
+- [x] Implicit-feedback matrix factorization
+  - [x] ALS
+  - [x] BPR
+  - [x] Logistic Matrix Factorization
 - [ ] Two-tower neural retrieval
 - [ ] Approximate nearest-neighbor retrieval
 - [ ] ONNX inference for neural models
