@@ -110,6 +110,14 @@ class MatrixFactorizationRecommender(Recommender):
                 row_items = self.fallback_predictions[:n_recommendations]
                 row_scores = self.fallback_scores[:n_recommendations]
 
+                # Pad if user requested more recommendations than fallback storage
+                if len_diff := len(row_items) - n_recommendations:
+                    tail = np.full(shape=(len_diff,), fill_value=row_items[-1])
+                    row_items = np.hstack((row_items, tail))
+
+                    tail = np.full(shape=(len_diff,), fill_value=row_scores[-1])
+                    row_scores = np.hstack((row_scores, tail))
+
             item_ids[row] = row_items
             scores[row] = row_scores
 

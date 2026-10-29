@@ -1,7 +1,8 @@
 import os
+from typing import Annotated
 
 import numpy as np
-import polars as pl
+from pydantic import Field
 from scipy.sparse import csr_matrix
 
 from recsys_platform.data import RecommenderDataset
@@ -12,7 +13,7 @@ from .model import MatrixFactorizationRecommender
 
 
 class MatrixFactorizationTrainerConfig(TrainerConfig):
-    fallback_items: int = 20
+    fallback_items: Annotated[int, Field(gt=0)] = 20
     random_state: int | None = None
     n_jobs: int = -1
 
@@ -44,21 +45,16 @@ class MatrixFactorizationTrainer[ConfigType: MatrixFactorizationTrainerConfig](
     """Base trainer for matrix-factorization recommenders."""
 
     def _get_fallback_predictions(
-        self, data: RecommenderDataset, max_items: int = 20
+        self, user_items: csr_matrix, item_ids: UInt32Vector, max_items: int = 20
     ) -> tuple[UInt32Vector, Float32Vector]:
-        popularity = (
-            data.data.group_by("item_id")
-            .len()
-            .sort(["len", "item_id"], descending=[True, False])
-            .with_columns((pl.col("len") / pl.col("len").max()).alias("score"))
-            .select("item_id", "score")
-            .head(max_items)
-            .collect(engine="streaming")
-        )
-        item_ids = popularity["item_id"].to_numpy().astype(np.uint32, copy=False)
-        scores = popularity["score"].to_numpy().astype(np.float32, copy=False)
+        counts = np.asarray(user_items.sum(axis=0)).ravel().astype(np.float32, copy=False)
 
-        return item_ids, scores
+        order = np.lexsort((item_ids, -counts))
+
+        ranked_items = item_ids[order][:max_items]
+        ranked_scores = counts[order][:max_items] / counts.max()
+
+        return (ranked_items, ranked_scores.astype(np.float32, copy=False))
 
     def _build_user_item_matrix(
         self, data: RecommenderDataset

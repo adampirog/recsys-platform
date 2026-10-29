@@ -37,7 +37,9 @@ class ALSTrainer(MatrixFactorizationTrainer[ALSTrainerConfig]):
         als.fit(user_items)
 
         fallback_predictions, fallback_scores = self._get_fallback_predictions(
-            data, max_items=self.config.fallback_items
+            user_items=user_items,
+            item_ids=item_ids,
+            max_items=self.config.fallback_items,
         )
 
         return MatrixFactorizationRecommender(

@@ -85,7 +85,7 @@ addopts = [
 testpaths = ["tests"]
 filterwarnings = [
     "ignore:The anyio\\.abc\\.BlockingPortal alias is deprecated.*:DeprecationWarning:starlette\\.testclient",
-    "ignore:OpenBLAS is configured to use .* threads\\.:RuntimeWarning:implicit\\.cpu\\.als",
+    'ignore:^OpenBLAS is configured to use [0-9]+ threads\.:RuntimeWarning',
 ]
 
 [tool.ruff]

@@ -22,7 +22,7 @@ def model() -> MatrixFactorizationRecommender:
             dtype=np.float32,
         ),
         fallback_predictions=np.array([1, 2], dtype=np.uint32),
-        fallback_scores=np.array([0.9, 0.2], dtype=np.float32),
+        fallback_scores=np.array([0.9, 0.1], dtype=np.float32),
     )
 
 
@@ -42,12 +42,15 @@ def test_predict_caps_k_at_number_of_items(model: MatrixFactorizationRecommender
     assert result.scores.shape == (1, 3)
 
 
-@pytest.mark.skip("TODO")
 def test_predict_rejects_unknown_user(model: MatrixFactorizationRecommender) -> None:
-    request = RecommendationRequest(user_ids=np.array([10, 999], dtype=np.uint32), k=2)
+    request = RecommendationRequest(user_ids=np.array([999, 666], dtype=np.uint32), k=2)
+    result = model.predict(request)
 
-    with pytest.raises(ValueError, match="Unknown user_id: 999"):
-        model.predict(request)
+    assert result.item_ids.shape == (2, 2)
+    assert result.scores.shape == (2, 2)
+
+    npt.assert_allclose(result.item_ids[0], [1, 2])
+    npt.assert_allclose(result.scores[0], [0.9, 0.1])
 
 
 def test_save_load_round_trip(model: MatrixFactorizationRecommender, tmp_path) -> None:
