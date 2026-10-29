@@ -57,7 +57,7 @@ def main(args: Namespace) -> None:
     train = pl.scan_parquet(args.train)
     mixed = pl.scan_parquet(args.dataset)
 
-    known_users = train.select("user_id").unique()
+    known_users = train.select("user_id").unique().collect(engine="streaming").lazy()
 
     warm = mixed.join(known_users, on="user_id", how="semi")
     cold = mixed.join(known_users, on="user_id", how="anti")

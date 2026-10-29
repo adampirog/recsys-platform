@@ -44,11 +44,6 @@ def parse_args() -> Namespace:
     return parser.parse_args()
 
 
-def get_users(df: pl.LazyFrame) -> pl.DataFrame:
-    """Return all users observed in the dataset."""
-    return df.select("user_id").unique().collect(engine="streaming")
-
-
 def resolve_sample_size(n_users: int, sample_size: float) -> int:
     """Resolve an absolute or fractional user sample size."""
     if 0 < sample_size < 1:
@@ -68,7 +63,7 @@ def resolve_sample_size(n_users: int, sample_size: float) -> int:
 def main(args: Namespace) -> None:
     df = pl.scan_parquet(args.dataset)
 
-    users = get_users(df)
+    users = df.select("user_id").unique().sort("user_id").collect(engine="streaming")
     n_users = resolve_sample_size(users.height, args.n_users)
     sampled_users = users.sample(n=n_users, seed=args.random_state, shuffle=True)
 

@@ -42,7 +42,7 @@ def test_predict_caps_k_at_number_of_items(model: MatrixFactorizationRecommender
     assert result.scores.shape == (1, 3)
 
 
-def test_predict_rejects_unknown_user(model: MatrixFactorizationRecommender) -> None:
+def test_predict_cold_user(model: MatrixFactorizationRecommender) -> None:
     request = RecommendationRequest(user_ids=np.array([999, 666], dtype=np.uint32), k=2)
     result = model.predict(request)
 
