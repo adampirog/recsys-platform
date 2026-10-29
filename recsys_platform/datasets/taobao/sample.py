@@ -80,7 +80,7 @@ def main(args: Namespace) -> None:
 
     if not args.skip_summary:
         print()
-        print_short_summary(sampled)
+        print_short_summary(pl.scan_parquet(args.output))
 
 
 if __name__ == "__main__":

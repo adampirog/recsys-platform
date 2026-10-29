@@ -52,6 +52,12 @@ class MatrixFactorizationRecommender(Recommender):
         if np.any(self.user_ids[1:] <= self.user_ids[:-1]):
             raise ValueError("user_ids must be strictly increasing.")
 
+        if self.fallback_predictions.shape != self.fallback_scores.shape:
+            raise ValueError("fallback_predictions and fallback_scores must have identical shapes.")
+
+        if self.fallback_predictions.size == 0:
+            raise ValueError("fallback predictions must not be empty.")
+
     def _lookup_users(self, user_ids: UInt32Vector) -> tuple[np.ndarray, np.ndarray]:
         """
         Map external user IDs to embedding row indices.

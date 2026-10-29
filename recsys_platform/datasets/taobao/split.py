@@ -79,13 +79,13 @@ def main(args: Namespace) -> None:
 
     if not args.skip_summary:
         print("TRAIN\n")
-        print_short_summary(train)
+        print_short_summary(pl.scan_parquet(args.output / "train.parquet"))
 
         print("\nVALID\n")
-        print_short_summary(valid)
+        print_short_summary(pl.scan_parquet(args.output / "valid.parquet"))
 
         print("\nTEST")
-        print_short_summary(test)
+        print_short_summary(pl.scan_parquet(args.output / "valid.parquet"))
 
 
 if __name__ == "__main__":
