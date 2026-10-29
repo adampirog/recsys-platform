@@ -85,3 +85,14 @@ def test_fit_returns_matrix_factorization_recommender(
     assert model.training_metadata is not None
     assert model.training_metadata.config == config.model_dump(mode="json")
     assert model.training_metadata.trainer.endswith(f".{trainer.__name__}")
+
+
+def test_fallback_predictions_use_item_popularity(dataset: RecommenderDataset) -> None:
+    trainer = ALSTrainer()
+
+    matrix, _, item_ids = trainer._build_user_item_matrix(dataset)
+
+    predictions, scores = trainer._get_fallback_predictions(matrix, item_ids, max_items=3)
+
+    npt.assert_array_equal(predictions, np.array([10, 20, 30], dtype=np.uint32))
+    npt.assert_allclose(scores, np.array([1.0, 0.6, 0.4], dtype=np.float32))

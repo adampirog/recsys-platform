@@ -85,7 +85,7 @@ def main(args: Namespace) -> None:
         print_short_summary(pl.scan_parquet(args.output / "valid.parquet"))
 
         print("\nTEST")
-        print_short_summary(pl.scan_parquet(args.output / "valid.parquet"))
+        print_short_summary(pl.scan_parquet(args.output / "test.parquet"))
 
 
 if __name__ == "__main__":

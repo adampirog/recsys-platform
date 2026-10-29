@@ -105,6 +105,8 @@ class MatrixFactorizationRecommender(Recommender):
         n_recommendations = min(request.k, self.item_ids.size)
 
         internal_ids, known = self._lookup_users(request.user_ids)
+        if not known.all():
+            n_recommendations = min(n_recommendations, self.fallback_predictions.size)
 
         item_ids = np.empty((request.user_ids.size, n_recommendations), dtype=np.uint32)
         scores = np.empty((request.user_ids.size, n_recommendations), dtype=np.float32)
@@ -115,14 +117,6 @@ class MatrixFactorizationRecommender(Recommender):
             else:
                 row_items = self.fallback_predictions[:n_recommendations]
                 row_scores = self.fallback_scores[:n_recommendations]
-
-                # Pad if user requested more recommendations than fallback storage
-                if (len_diff := n_recommendations - len(row_items)) > 0:
-                    tail = np.full(shape=(len_diff,), fill_value=row_items[-1])
-                    row_items = np.hstack((row_items, tail))
-
-                    tail = np.full(shape=(len_diff,), fill_value=row_scores[-1])
-                    row_scores = np.hstack((row_scores, tail))
 
             item_ids[row] = row_items
             scores[row] = row_scores

@@ -21,7 +21,7 @@ def model() -> MatrixFactorizationRecommender:
             ],
             dtype=np.float32,
         ),
-        fallback_predictions=np.array([1, 2], dtype=np.uint32),
+        fallback_predictions=np.array([100, 200], dtype=np.uint32),
         fallback_scores=np.array([0.9, 0.1], dtype=np.float32),
     )
 
@@ -49,8 +49,8 @@ def test_predict_cold_user(model: MatrixFactorizationRecommender) -> None:
     assert result.item_ids.shape == (2, 2)
     assert result.scores.shape == (2, 2)
 
-    npt.assert_allclose(result.item_ids[0], [1, 2])
-    npt.assert_allclose(result.scores[0], [0.9, 0.1])
+    npt.assert_array_equal(result.item_ids[0], [100, 200])
+    npt.assert_array_almost_equal(result.scores[0], [0.9, 0.1])
 
 
 def test_save_load_round_trip(model: MatrixFactorizationRecommender, tmp_path) -> None:

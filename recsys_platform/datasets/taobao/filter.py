@@ -62,16 +62,16 @@ def main(args: Namespace) -> None:
     warm = mixed.join(known_users, on="user_id", how="semi")
     cold = mixed.join(known_users, on="user_id", how="anti")
 
-    root = args.dataset.parent
-    name = args.dataset.stem
-    warm.sink_parquet(root / f"{name}_warm.parquet", mkdir=True, engine="streaming")
-    cold.sink_parquet(root / f"{name}_cold.parquet", mkdir=True, engine="streaming")
+    warm_path = args.dataset.parent / f"{args.dataset.stem}_warm.parquet"
+    cold_path = args.dataset.parent / f"{args.dataset.stem}_cold.parquet"
+    warm.sink_parquet(warm_path, mkdir=True, engine="streaming")
+    cold.sink_parquet(cold_path, mkdir=True, engine="streaming")
 
-    print(f"Saved datasets to '{root}/'")
+    print(f"Saved datasets to '{warm_path.parent}'")
 
     if not args.skip_summary:
         print()
-        print_summary(mixed, warm, cold)
+        print_summary(mixed, pl.scan_parquet(warm_path), pl.scan_parquet(cold_path))
 
 
 if __name__ == "__main__":
