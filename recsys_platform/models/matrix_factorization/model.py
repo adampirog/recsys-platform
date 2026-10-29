@@ -107,20 +107,22 @@ class MatrixFactorizationRecommender(Recommender):
         n_recommendations = min(request.k, self.item_ids.size)
 
         internal_ids, known = self._lookup_users(request.user_ids)
-        if not known.all():
+        cold = ~known
+
+        if cold.any():
             n_recommendations = min(n_recommendations, self.fallback_predictions.size)
 
         item_ids = np.empty((request.user_ids.size, n_recommendations), dtype=np.uint32)
         scores = np.empty((request.user_ids.size, n_recommendations), dtype=np.float32)
 
-        item_ids[~known] = self.fallback_predictions[:n_recommendations]
-        scores[~known] = self.fallback_scores[:n_recommendations]
+        if cold.any():
+            item_ids[cold] = self.fallback_predictions[:n_recommendations]
+            scores[cold] = self.fallback_scores[:n_recommendations]
 
-        for row in range(request.user_ids.size):
-            if known[row]:
-                row_items, row_scores = self._recommend_user(internal_ids[row], n_recommendations)
-                item_ids[row] = row_items
-                scores[row] = row_scores
+        for row in np.flatnonzero(known):
+            row_items, row_scores = self._recommend_user(internal_ids[row], n_recommendations)
+            item_ids[row] = row_items
+            scores[row] = row_scores
 
         return Recommendation(item_ids=item_ids, scores=scores)
 
