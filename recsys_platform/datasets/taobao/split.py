@@ -10,7 +10,7 @@ import polars as pl
 from .preprocessing import TIMEZONE, print_short_summary
 
 
-MIN_ITEM_INTERACTIONS = 5
+MIN_ITEM_USERS = 5
 
 TRAIN_DATES = (
     datetime(2017, 11, 25, tzinfo=ZoneInfo(TIMEZONE)),
@@ -37,7 +37,7 @@ def parse_args() -> Namespace:
         "--skip-summary",
         default=False,
         action="store_true",
-        help="Skip the final sampled-dataset summary.",
+        help="Skip summaries of the generated dataset splits.",
     )
 
     return parser.parse_args()
@@ -48,8 +48,8 @@ def get_valid_items(df: pl.LazyFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("event_time").is_between(*TRAIN_DATES, closed="left"))
         .group_by("item_id")
-        .len()
-        .filter(pl.col("len") >= MIN_ITEM_INTERACTIONS)
+        .agg(pl.col("user_id").n_unique().alias("users"))
+        .filter(pl.col("users") >= MIN_ITEM_USERS)
         .select("item_id")
         .collect(engine="streaming")
     )

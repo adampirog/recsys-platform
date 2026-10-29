@@ -19,6 +19,8 @@ class LMFTrainerConfig(MatrixFactorizationTrainerConfig):
 
 
 class LMFTrainer(MatrixFactorizationTrainer[LMFTrainerConfig]):
+    """Train a matrix-factorization recommender using implicit-feedback LMF."""
+
     def __init__(self, config: LMFTrainerConfig | None = None) -> None:
         super().__init__(config=config or LMFTrainerConfig())
 

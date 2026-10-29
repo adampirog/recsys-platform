@@ -18,6 +18,8 @@ class ALSTrainerConfig(MatrixFactorizationTrainerConfig):
 
 
 class ALSTrainer(MatrixFactorizationTrainer[ALSTrainerConfig]):
+    """Train a matrix-factorization recommender using implicit-feedback ALS."""
+
     def __init__(self, config: ALSTrainerConfig | None = None) -> None:
         super().__init__(config=config or ALSTrainerConfig())
 

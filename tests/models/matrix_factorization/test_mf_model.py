@@ -64,6 +64,8 @@ def test_save_load_round_trip(model: MatrixFactorizationRecommender, tmp_path) -
     npt.assert_array_equal(loaded.item_ids, model.item_ids)
     npt.assert_array_equal(loaded.user_embeddings, model.user_embeddings)
     npt.assert_array_equal(loaded.item_embeddings, model.item_embeddings)
+    npt.assert_array_equal(loaded.fallback_predictions, model.fallback_predictions)
+    npt.assert_array_equal(loaded.fallback_scores, model.fallback_scores)
 
 
 def test_rejects_incompatible_embedding_dimensions() -> None:

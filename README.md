@@ -9,8 +9,6 @@ A modular platform for training, evaluating, serializing, and serving recommende
 
 The platform is **model- and data-agnostic**: datasets, trainers, recommenders, evaluation, model artifacts, and serving are separated behind reusable interfaces.
 
-_The current V1 uses a global popularity model as a simple baseline while the infrastructure is developed for more advanced personalized models._
-
 ## Highlights
 
 - Generic `Recommender`, `Trainer`, and dataset interfaces

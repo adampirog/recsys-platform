@@ -14,6 +14,8 @@ from recsys_platform.types import Float32Matrix, Float32Vector, UInt32Vector
 
 
 class MatrixFactorizationRecommender(Recommender):
+    """Recommend items by user-item embedding similarity with a popularity fallback."""
+
     MODEL_FAMILY = "matrix_factorization"
     ARTIFACT_VERSION = "0.1.0"
 

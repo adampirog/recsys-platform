@@ -19,6 +19,8 @@ class BPRTrainerConfig(MatrixFactorizationTrainerConfig):
 
 
 class BPRTrainer(MatrixFactorizationTrainer[BPRTrainerConfig]):
+    """Train a matrix-factorization recommender using implicit-feedback BPR."""
+
     def __init__(self, config: BPRTrainerConfig | None = None) -> None:
         super().__init__(config=config or BPRTrainerConfig())
 
