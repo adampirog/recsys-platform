@@ -1,8 +1,8 @@
-from recsys_platform.cli.evaluate import parse_evaluation_args, run_evaluation
+from recsys_platform.cli.evaluate import get_evaluation_parser, run_evaluation
 
 from .model import PopularityRecommender
 
 
 if __name__ == "__main__":
-    args = parse_evaluation_args("PopularityRecommender")
-    run_evaluation(args, recommender_cls=PopularityRecommender)
+    parser = get_evaluation_parser("PopularityRecommender")
+    run_evaluation(parser.parse_args(), recommender_cls=PopularityRecommender)

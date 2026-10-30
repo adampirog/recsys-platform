@@ -17,18 +17,27 @@ EVENT_TYPES = {"pv": "view", "fav": "favorite", "cart": "cart", "buy": "purchase
 EVENT_TYPE_DTYPE = pl.Enum(["view", "favorite", "cart", "purchase"])
 
 
+def parse_args() -> Namespace:
+    parser = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
+
+    parser.add_argument("input", type=Path, help="Path to the raw dataset.")
+    parser.add_argument("output", type=Path, help="Path to a cleaned parquet dataset.")
+    parser.add_argument(
+        "--skip-summary",
+        default=False,
+        action="store_true",
+        help="Skip the final dataset summary.",
+    )
+
+    return parser.parse_args()
+
+
 def scan_dataset(path: str | Path) -> pl.LazyFrame:
     """Scan the raw Taobao CSV as a lazy frame."""
     return pl.scan_csv(
         path,
         has_header=False,
-        new_columns=[
-            "user_id",
-            "item_id",
-            "category_id",
-            "event_type",
-            "timestamp",
-        ],
+        new_columns=["user_id", "item_id", "category_id", "event_type", "timestamp"],
         schema_overrides={
             "user_id": pl.UInt32,
             "item_id": pl.UInt32,
@@ -42,20 +51,9 @@ def scan_dataset(path: str | Path) -> pl.LazyFrame:
 def clean_dataset(df: pl.LazyFrame) -> pl.LazyFrame:
     """Clean, type, and time-filter raw Taobao interactions."""
     return (
-        df.drop_nulls(
-            [
-                "user_id",
-                "item_id",
-                "category_id",
-                "event_type",
-                "timestamp",
-            ]
-        )
+        df.drop_nulls(["user_id", "item_id", "category_id", "event_type", "timestamp"])
         .with_columns(
-            pl.from_epoch(
-                pl.col("timestamp"),
-                time_unit="s",
-            )
+            pl.from_epoch(pl.col("timestamp"), time_unit="s")
             .dt.replace_time_zone("UTC")
             .dt.convert_time_zone(TIMEZONE)
             .alias("event_time"),
@@ -64,20 +62,8 @@ def clean_dataset(df: pl.LazyFrame) -> pl.LazyFrame:
             .cast(EVENT_TYPE_DTYPE)
             .alias("event_type"),
         )
-        .filter(
-            pl.col("event_time").is_between(
-                START_TIME,
-                END_TIME,
-                closed="left",
-            )
-        )
-        .select(
-            "user_id",
-            "item_id",
-            "category_id",
-            "event_type",
-            "event_time",
-        )
+        .filter(pl.col("event_time").is_between(START_TIME, END_TIME, closed="left"))
+        .select("user_id", "item_id", "category_id", "event_type", "event_time")
     )
 
 
@@ -192,19 +178,12 @@ def print_summary(df: pl.LazyFrame) -> None:
     print(purchase_support(df))
 
 
-def parse_args() -> Namespace:
-    parser = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
+def print_short_summary(df: pl.LazyFrame) -> None:
+    print("=== OVERVIEW ===")
+    print(dataset_overview(df))
 
-    parser.add_argument("input", type=Path, help="Path to the raw dataset.")
-    parser.add_argument("output", type=Path, help="Path to a cleaned parquet dataset.")
-    parser.add_argument(
-        "--skip-eda",
-        default=False,
-        action="store_true",
-        help="Skip the EDA and final dataset summary.",
-    )
-
-    return parser.parse_args()
+    print("\n=== USER ACTIVITY ===")
+    print(user_activity_summary(df))
 
 
 def main(args: Namespace):
@@ -212,14 +191,10 @@ def main(args: Namespace):
     df = clean_dataset(df)
     df.sink_parquet(args.output, engine="streaming", mkdir=True)
 
-    if not args.skip_eda:
+    if not args.skip_summary:
         df = pl.scan_parquet(args.output)
         print_summary(df)
 
 
-def cli():
-    main(parse_args())
-
-
 if __name__ == "__main__":
-    cli()
+    main(parse_args())

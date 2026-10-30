@@ -10,43 +10,48 @@ license-files = ["LICENSE"]
 dynamic = ["version"]
 requires-python = ">=3.13"
 dependencies = [
-    "numpy>=2.4",
+    "numpy>=2.5",
     "pydantic>=2.12",
 ]
 
 [project.optional-dependencies]
+
+data = [
+    "polars>=1.44.2",
+]
+
+evaluation = [
+    "recsys-platform[data]",
+    "prettytable>=3.18",
+    "tqdm>=4.67",
+]
 
 serving = [
     "fastapi>=0.140",
     "uvicorn>=0.52",
 ]
 
-evaluation = [
-    "polars>=1.44.2",
-    "prettytable>=3.18",
-    "tqdm>=4.67",
-]
-
 taobao-data = [
-    "polars>=1.44.2",
+    "recsys-platform[data]",
     "tzdata",
 ]
 
 popularity-inference = []
 
 popularity-training = [
-    "polars>=1.44.2",
-    "prettytable>=3.18",
-    "tqdm>=4.67",
+    "recsys-platform[popularity-inference,evaluation]",
+]
+
+matrix-factorization-inference = []
+
+matrix-factorization-training = [
+    "recsys-platform[matrix-factorization-inference,evaluation]",
+    "scipy>=1.18",
+    "implicit>=0.7.3",
 ]
 
 all = [
-    "polars>=1.44.2",
-    "prettytable>=3.18",
-    "tqdm>=4.67",
-    "tzdata",
-    "fastapi>=0.140",
-    "uvicorn>=0.52",
+    "recsys-platform[taobao-data,serving,popularity-training,matrix-factorization-training]",
 ]
 
 [dependency-groups]
@@ -80,6 +85,7 @@ addopts = [
 testpaths = ["tests"]
 filterwarnings = [
     "ignore:The anyio\\.abc\\.BlockingPortal alias is deprecated.*:DeprecationWarning:starlette\\.testclient",
+    'ignore:OpenBLAS is configured to use [0-9]+ threads\..*:RuntimeWarning:implicit\.cpu\.als',
 ]
 
 [tool.ruff]

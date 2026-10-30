@@ -7,10 +7,10 @@ from zoneinfo import ZoneInfo
 
 import polars as pl
 
-from .preprocessing import TIMEZONE
+from .preprocessing import TIMEZONE, print_short_summary
 
 
-MIN_ITEM_INTERACTIONS = 5
+MIN_ITEM_USERS = 5
 
 TRAIN_DATES = (
     datetime(2017, 11, 25, tzinfo=ZoneInfo(TIMEZONE)),
@@ -28,18 +28,28 @@ TEST_DATES = (
 )
 
 
+def parse_args() -> Namespace:
+    parser = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
+
+    parser.add_argument("input", type=Path, help="Path to the cleaned Parquet dataset.")
+    parser.add_argument("output", type=Path, help="Directory for the dataset splits.")
+    parser.add_argument(
+        "--skip-summary",
+        default=False,
+        action="store_true",
+        help="Skip summaries of the generated dataset splits.",
+    )
+
+    return parser.parse_args()
+
+
 def get_valid_items(df: pl.LazyFrame) -> pl.DataFrame:
-    """Return training items with at least ``MIN_ITEM_INTERACTIONS`` interactions."""
+    """Return items interacted with by at least ``MIN_ITEM_USERS`` training users."""
     return (
-        df.filter(
-            pl.col("event_time").is_between(
-                *TRAIN_DATES,
-                closed="left",
-            )
-        )
+        df.filter(pl.col("event_time").is_between(*TRAIN_DATES, closed="left"))
         .group_by("item_id")
-        .len()
-        .filter(pl.col("len") >= MIN_ITEM_INTERACTIONS)
+        .agg(pl.col("user_id").n_unique().alias("users"))
+        .filter(pl.col("users") >= MIN_ITEM_USERS)
         .select("item_id")
         .collect(engine="streaming")
     )
@@ -49,25 +59,9 @@ def get_subset(
     df: pl.LazyFrame, dates: tuple[datetime, datetime], valid_items: pl.DataFrame
 ) -> pl.LazyFrame:
     """Filter interactions to a date range and the supported item set."""
-    return df.filter(
-        pl.col("event_time").is_between(
-            *dates,
-            closed="left",
-        )
-    ).join(
-        valid_items.lazy(),
-        on="item_id",
-        how="semi",
+    return df.filter(pl.col("event_time").is_between(*dates, closed="left")).join(
+        valid_items.lazy(), on="item_id", how="semi"
     )
-
-
-def parse_args() -> Namespace:
-    parser = ArgumentParser(description=__doc__, formatter_class=RawDescriptionHelpFormatter)
-
-    parser.add_argument("input", type=Path, help="Path to the cleaned Parquet dataset.")
-    parser.add_argument("output", type=Path, help="Directory for the dataset splits.")
-
-    return parser.parse_args()
 
 
 def main(args: Namespace) -> None:
@@ -83,10 +77,16 @@ def main(args: Namespace) -> None:
     valid.sink_parquet(args.output / "valid.parquet", mkdir=True, engine="streaming")
     test.sink_parquet(args.output / "test.parquet", mkdir=True, engine="streaming")
 
+    if not args.skip_summary:
+        print("TRAIN\n")
+        print_short_summary(pl.scan_parquet(args.output / "train.parquet"))
 
-def cli() -> None:
-    main(parse_args())
+        print("\nVALID\n")
+        print_short_summary(pl.scan_parquet(args.output / "valid.parquet"))
+
+        print("\nTEST")
+        print_short_summary(pl.scan_parquet(args.output / "test.parquet"))
 
 
 if __name__ == "__main__":
-    cli()
+    main(parse_args())

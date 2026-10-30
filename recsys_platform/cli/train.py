@@ -7,7 +7,7 @@ from recsys_platform.models import Recommender
 from recsys_platform.training import Trainer, TrainerConfig
 
 
-def parse_training_args(model_name: str) -> Namespace:
+def get_training_parser(model_name: str) -> ArgumentParser:
     parser = ArgumentParser(description=f"Train, save, and validate a {model_name} model.")
 
     parser.add_argument(
@@ -35,7 +35,7 @@ def parse_training_args(model_name: str) -> Namespace:
         help="Optional validation Parquet dataset.",
     )
 
-    return parser.parse_args()
+    return parser
 
 
 def run_training[RecommenderType: Recommender, ConfigType: TrainerConfig](
