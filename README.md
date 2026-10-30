@@ -5,29 +5,91 @@
 ![Python](https://img.shields.io/badge/python-3.13%2B-blue)
 ![License](https://img.shields.io/github/license/adampirog/recsys-platform)
 
-A modular platform for training, evaluating, serializing, and serving recommender systems.
+An end-to-end platform for building, evaluating, serializing, and serving recommender systems.
 
-The platform is **model- and data-agnostic**: datasets, trainers, recommenders, evaluation, model artifacts, and serving are separated behind reusable interfaces.
+The project separates dataset access, training, inference, evaluation, artifacts, and serving behind reusable interfaces. Model families can use different training stacks while producing lightweight inference artifacts that integrate with the same evaluation and serving infrastructure.
 
 ## Highlights
 
-- Generic `Recommender`, `Trainer`, and dataset interfaces
-- Personalized matrix factorization with ALS, BPR, and Logistic MF
-- Shared embedding-based inference artifact across MF training algorithms
-- CLI workflows for data preparation, training, evaluation, and serving
-- Recommendation metrics: Precision@K, Recall@K, HitRate@K, and NDCG@K
+- Generic `Recommender`, `Trainer`, and Parquet-backed interaction dataset interfaces
+- Global popularity and personalized matrix-factorization recommenders
+- ALS, BPR, and Logistic Matrix Factorization for implicit feedback
+- Cold-user fallback for personalized models
+- Exact embedding-based top-k retrieval with memory-bounded batched inference
+- Precision@K, Recall@K, HitRate@K, and NDCG@K evaluation
 - Versioned model artifacts with training metadata
-- FastAPI serving with lazy model loading
-- Model-family registry and runtime model discovery
-- Separate training and inference dependencies
+- CLI workflows for data preparation, training, evaluation, and serving
+- FastAPI serving with lazy model loading and model-family discovery
+- Separate training and inference dependency sets
 - Dockerized inference
 - Ruff, pytest, integration tests, and PR CI
 
+## Architecture
+
+The platform follows the same model lifecycle regardless of the training algorithm:
+
+```text
+interaction data
+      │
+      ▼
+RecommenderDataset
+      │
+      ▼
+    Trainer
+      │
+      ▼
+model artifact
+(manifest + model state)
+      │
+      ├──────────────► evaluation
+      │
+      ▼
+  Recommender
+      │
+      ▼
+ FastAPI serving
+```
+
+The main boundaries are intentionally simple:
+
+- **Dataset** — exposes canonical `user_id` / `item_id` interaction data.
+- **Trainer** — transforms training data into a model-specific inference artifact.
+- **Recommender** — generates top-k recommendations from serialized model state.
+- **Evaluation** — measures recommendation quality independently of the training algorithm.
+- **Artifact** — stores model state together with version and training metadata.
+- **Serving** — discovers recommender families from artifacts and loads them lazily.
+
+Training-only libraries are kept outside the inference path. For example, matrix-factorization training uses SciPy and `implicit`, while the serialized recommender requires only the core NumPy inference stack.
+
+## Implemented model families
+
+| Model family         | Training algorithms           | Inference                                                              |
+| -------------------- | ----------------------------- | ---------------------------------------------------------------------- |
+| Popularity           | Global interaction popularity | Precomputed global top-k ranking                                       |
+| Matrix factorization | ALS, BPR, Logistic MF         | User/item embedding similarity with popularity fallback for cold users |
+
+Matrix-factorization algorithms share the same inference artifact: external user and item IDs together with learned user/item embeddings. This allows different optimization objectives to be compared without changing the serving or evaluation interface.
+
 ## Development dataset
 
-The platform has been developed against the **Taobao UserBehavior** dataset: a large-scale, real-world e-commerce interaction dataset containing roughly **100 million user-item events**. [(Original data source)](https://tianchi.aliyun.com/dataset/649)
+The platform has primarily been developed against the **Taobao UserBehavior** dataset, a large-scale e-commerce interaction dataset containing roughly **100 million user-item events**.
 
-It provides a realistic workload for developing and testing the platform while remaining separate from its core abstractions. The included Taobao integration is a reference implementation, not a requirement for using the platform.
+[Original Taobao UserBehavior dataset](https://tianchi.aliyun.com/dataset/649)
+
+The Taobao integration is a reference dataset pipeline rather than a requirement of the platform. Core model and evaluation interfaces operate on canonical Parquet interaction datasets containing at least:
+
+```text
+user_id
+item_id
+```
+
+The included Taobao tooling supports:
+
+- raw-data cleaning and time normalization;
+- deterministic user sampling for smaller local experiments;
+- temporal train / validation / test splitting;
+- training-supported item filtering;
+- warm- and cold-user evaluation cohorts.
 
 ## Installation
 
@@ -38,29 +100,32 @@ git clone https://github.com/adampirog/recsys-platform.git
 cd recsys-platform
 ```
 
-Install the components you need:
+Install only the components required by the workflow.
 
 ```bash
-# Popularity training + evaluation
-pip install -e ".[popularity-training]"
-
 # Taobao data preparation
 pip install -e ".[taobao-data]"
 
-# Serving
-pip install -e ".[serving,popularity-inference]"
+# Popularity training + evaluation
+pip install -e ".[popularity-training]"
 
-# Everything
-pip install -e ".[all]"
+# Matrix-factorization training + evaluation
+pip install -e ".[matrix-factorization-training]"
+
+# Serving currently implemented model families
+pip install -e ".[serving,popularity-inference,matrix-factorization-inference]"
+
+# Complete development installation
+pip install -e ".[all]" --group dev
 ```
 
 ## Quick start
 
-The included scripts cover the complete workflow from raw interactions to a served model.
+The included CLIs cover the complete path from raw interactions to a serialized and served model.
 
 ### 1. Prepare the Taobao dataset
 
-Clean the raw dataset and generate a short dataset summary:
+Clean the original dataset:
 
 ```bash
 python -m recsys_platform.datasets.taobao.preprocessing \
@@ -68,11 +133,21 @@ python -m recsys_platform.datasets.taobao.preprocessing \
   data/taobao.parquet
 ```
 
+For faster local experimentation, optionally create a deterministic user sample while preserving complete histories for the selected users:
+
+```bash
+python -m recsys_platform.datasets.taobao.sample \
+  data/taobao.parquet \
+  data/taobao-small.parquet \
+  --n-users 0.2 \
+  --random-state 42
+```
+
 Create temporal train, validation, and test splits:
 
 ```bash
 python -m recsys_platform.datasets.taobao.split \
-  data/taobao.parquet \
+  data/taobao-small.parquet \
   data/splits
 ```
 
@@ -85,10 +160,47 @@ data/splits/
 └── test.parquet
 ```
 
-### 2. Train a model
+Items retained in the splits must have been interacted with by at least five distinct users during the training period. Validation and test therefore use a training-supported item universe.
 
-Training is configured through a JSON file containing appropriates model config.
-E.g. -- PopularityRecommender
+The original validation and test files preserve the natural mixture of warm and cold users.
+
+To materialize separate user cohorts:
+
+```bash
+python -m recsys_platform.datasets.taobao.filter \
+  data/splits/train.parquet \
+  data/splits/valid.parquet
+
+python -m recsys_platform.datasets.taobao.filter \
+  data/splits/train.parquet \
+  data/splits/test.parquet
+```
+
+This additionally creates:
+
+```text
+data/splits/
+├── valid_warm.parquet
+├── valid_cold.parquet
+├── test_warm.parquet
+└── test_cold.parquet
+```
+
+A **warm user** appears in the final training dataset. A **cold user** does not.
+
+This gives three useful evaluation views:
+
+- `*_warm.parquet` — personalized-model quality;
+- `*_cold.parquet` — cold-user fallback quality;
+- original `valid.parquet` / `test.parquet` — realistic end-to-end system quality.
+
+### 2. Train a recommender
+
+Trainer configuration is stored as JSON and becomes part of the serialized model's training metadata.
+
+#### Popularity baseline
+
+Example configuration:
 
 ```json
 {
@@ -96,38 +208,94 @@ E.g. -- PopularityRecommender
 }
 ```
 
-Train and serialize the popularity model:
+Train the model:
 
 ```bash
 python -m recsys_platform.models.popularity.train \
   configs/popularity.json \
   data/splits/train.parquet \
-  --validation-dataset data/splits/valid.parquet \
-  --output artifacts/popularity
+  artifacts \
+  --validation-dataset data/splits/valid.parquet
 ```
 
-The resulting artifact contains the model state together with a manifest describing its identity, versions, and training configuration.
+#### Matrix factorization
+
+Example ALS configuration:
+
+```json
+{
+  "embedding_size": 128,
+  "regularization": 0.01,
+  "alpha": 20.0,
+  "iterations": 20,
+  "fallback_items": 20,
+  "random_state": 42,
+  "n_jobs": -1
+}
+```
+
+Train ALS:
+
+```bash
+python -m recsys_platform.models.matrix_factorization.train \
+  configs/als.json \
+  data/splits/train.parquet \
+  artifacts \
+  --algorithm ALS \
+  --validation-dataset data/splits/valid_warm.parquet
+```
+
+The same entry point supports:
+
+```text
+--algorithm ALS
+--algorithm BPR
+--algorithm LMF
+```
+
+Each algorithm has its own trainer configuration while producing the same matrix-factorization inference artifact.
+
+Training creates an artifact directory containing model state and a manifest describing the model family, artifact version, package version, model ID, trainer, and training configuration.
 
 ### 3. Evaluate a saved model
 
+Evaluate a matrix-factorization artifact:
+
 ```bash
-python -m recsys_platform.models.popularity.evaluate \
-  artifacts/popularity \
-  data/splits/test.parquet \
-  --output artifacts/popularity/test.json
+python -m recsys_platform.models.matrix_factorization.evaluate \
+  artifacts/<model-id> \
+  data/splits/test_warm.parquet \
+  --k-values 5 10 20 \
+  --output artifacts/<model-id>/test-warm.json
 ```
 
-Evaluation results are also printed to the terminal.
+Evaluate the popularity baseline:
+
+```bash
+python -m recsys_platform.models.popularity.evaluate \
+  artifacts/<model-id> \
+  data/splits/test.parquet \
+  --k-values 5 10 20
+```
+
+Available ranking metrics are:
+
+- Precision@K
+- Recall@K
+- HitRate@K
+- NDCG@K
+
+Evaluation is macro-averaged across users.
 
 ### 4. Serve models
 
-Start the API against a directory containing model artifacts:
+Start the inference API against a directory containing model artifacts:
 
 ```bash
 python -m recsys_platform.serving.app ./artifacts
 ```
 
-Models are discovered from their manifests and loaded lazily on first use.
+Artifacts are discovered from their manifests and model implementations are loaded lazily.
 
 Interactive API documentation is available at:
 
@@ -135,7 +303,7 @@ Interactive API documentation is available at:
 http://localhost:8000/docs
 ```
 
-Generate recommendations directly:
+Generate recommendations:
 
 ```bash
 curl -X POST \
@@ -144,46 +312,101 @@ curl -X POST \
   -d '{"user_ids": [101, 102], "k": 10}'
 ```
 
-All scripts expose their available options through `--help`.
+All CLIs expose their available options through `--help`.
+
+## Project structure
+
+```text
+recsys_platform/
+├── cli/                  # shared training and evaluation CLI infrastructure
+├── data/                 # canonical interaction datasets
+├── datasets/
+│   └── taobao/           # reference preprocessing and benchmark pipeline
+├── evaluation/           # ranking metrics and model evaluation
+├── models/
+│   ├── popularity/
+│   └── matrix_factorization/
+├── serving/              # model discovery and FastAPI inference
+└── training/             # generic trainer abstractions
+```
+
+Model-family packages own their training implementation and inference artifact while relying on shared platform infrastructure for datasets, metadata, evaluation, and serving.
 
 ## Docker
 
-Build and run the serving image:
+Build the inference image:
 
 ```bash
 docker build -t recsys-platform .
+```
 
+Run it against local model artifacts:
+
+```bash
 docker run --rm \
   -p 8000:8000 \
   -v "$(pwd)/artifacts:/models:ro" \
   recsys-platform
 ```
 
-_The runtime image contains only serving and inference dependencies._
+The runtime image installs serving and inference dependencies only. Training libraries such as SciPy and `implicit` are excluded.
+
+## Extending the platform
+
+New model families should fit the existing lifecycle rather than introduce parallel infrastructure.
+
+A typical model-family addition consists of:
+
+```text
+models/<family>/
+├── model.py          # lightweight serialized inference implementation
+├── trainer.py        # shared family-level training logic, if needed
+├── *_trainer.py      # algorithm-specific training implementations
+├── train.py          # CLI entry point
+└── evaluate.py       # CLI entry point
+```
+
+The expected integration points are:
+
+1. implement a `Recommender` inference artifact;
+2. implement one or more `Trainer` classes;
+3. define separate training and inference dependency extras;
+4. register the model family for serving;
+5. reuse the shared evaluation pipeline;
+6. add focused unit and integration tests.
+
+Model-specific training frameworks should remain outside the inference dependency path whenever possible.
 
 ## Roadmap
 
-### Models
+### Recommendation models
 
 - [x] Global popularity baseline
 - [x] Implicit-feedback matrix factorization
-  - [x] ALS
-  - [x] BPR
+  - [x] Alternating Least Squares
+  - [x] Bayesian Personalized Ranking
   - [x] Logistic Matrix Factorization
 - [ ] Two-tower neural retrieval
+- [ ] Learned ranking / reranking
+- [ ] Multi-stage recommendation models
+
+### Retrieval and inference
+
+- [x] Exact embedding-based retrieval
+- [x] Memory-bounded batched MF inference
+- [x] Cold-user popularity fallback
 - [ ] Approximate nearest-neighbor retrieval
 - [ ] ONNX inference for neural models
-- [ ] Learned ranking / reranking
-- [ ] Multi-stage retrieval and ranking
+- [ ] Candidate-generation / reranking pipelines
 
-### Serving
+### Serving and operations
 
 - [x] FastAPI inference API
 - [x] Lazy model discovery and loading
 - [x] Runtime artifact refresh
 - [x] Explicit model load / unload
 - [x] Dockerized serving
-- [ ] Concurrent workers support
+- [ ] Concurrent worker support
 - [ ] Structured logging and metrics
 - [ ] Prometheus / OpenTelemetry integration
 - [ ] Readiness and liveness probes
@@ -193,9 +416,15 @@ _The runtime image contains only serving and inference dependencies._
 
 ## Development
 
+Install the complete development environment:
+
 ```bash
 pip install -e ".[all]" --group dev
+```
 
+Run static checks and tests:
+
+```bash
 ruff check .
 pytest
 ```
