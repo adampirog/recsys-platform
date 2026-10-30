@@ -19,6 +19,8 @@ class MatrixFactorizationRecommender(Recommender):
     MODEL_FAMILY = "matrix_factorization"
     ARTIFACT_VERSION = "0.1.0"
 
+    _MAX_SCORE_MATRIX_BYTES = 128 * 1024**2
+
     def __init__(
         self,
         user_ids: UInt32Vector,
@@ -60,6 +62,12 @@ class MatrixFactorizationRecommender(Recommender):
         if self.fallback_predictions.size == 0:
             raise ValueError("fallback predictions must not be empty.")
 
+    def _scoring_batch_size(self) -> int:
+        """Return the number of users that fit in the score-matrix memory budget."""
+        bytes_per_user = self.item_embeddings.shape[0] * self.item_embeddings.dtype.itemsize
+
+        return max(1, self._MAX_SCORE_MATRIX_BYTES // bytes_per_user)
+
     def _lookup_users(self, user_ids: UInt32Vector) -> tuple[np.ndarray, np.ndarray]:
         """
         Map external user IDs to embedding row indices.
@@ -80,33 +88,33 @@ class MatrixFactorizationRecommender(Recommender):
 
         return internal_indices, known
 
-    def _recommend_user(self, user_index: int, k: int) -> tuple[UInt32Vector, Float32Vector]:
-        """
-        Generate top-k recommendations for one known user.
+    def _recommend_users(self, user_indices: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
+        """Generate top-k recommendations for a batch of known users."""
+        batch_scores = self.user_embeddings[user_indices] @ self.item_embeddings.T
 
-        Args:
-            user_index: Row index of the user in ``user_embeddings``.
-            k: Number of recommendations to return.
+        batch_size = user_indices.size
 
-        Returns:
-            Recommended external item IDs and their corresponding dot-product
-            scores, ordered from highest to lowest score.
-        """
-        user_embedding = self.user_embeddings[user_index]
-        scores = self.item_embeddings @ user_embedding
+        item_ids = np.empty((batch_size, k), dtype=np.uint32)
+        scores = np.empty((batch_size, k), dtype=np.float32)
 
-        if k == scores.size:
-            top_indices = np.argsort(scores)[::-1]
-        else:
-            top_indices = np.argpartition(scores, -k)[-k:]
-            top_indices = top_indices[np.argsort(scores[top_indices], descending=True)]
+        for row, user_scores in enumerate(batch_scores):
+            if k == user_scores.size:
+                top_indices = np.argsort(user_scores, descending=True)
+            else:
+                top_indices = np.argpartition(user_scores, -k)[-k:]
+                top_indices = top_indices[np.argsort(user_scores[top_indices], descending=True)]
 
-        return self.item_ids[top_indices], scores[top_indices].astype(np.float32, copy=False)
+            item_ids[row] = self.item_ids[top_indices]
+            scores[row] = user_scores[top_indices]
+
+        return item_ids, scores
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
+        """Generate recommendations using MF for known users and fallback for cold users."""
         n_recommendations = min(request.k, self.item_ids.size)
 
         internal_ids, known = self._lookup_users(request.user_ids)
+        warm_rows = np.flatnonzero(known)
         cold = ~known
 
         if cold.any():
@@ -119,10 +127,18 @@ class MatrixFactorizationRecommender(Recommender):
             item_ids[cold] = self.fallback_predictions[:n_recommendations]
             scores[cold] = self.fallback_scores[:n_recommendations]
 
-        for row in np.flatnonzero(known):
-            row_items, row_scores = self._recommend_user(internal_ids[row], n_recommendations)
-            item_ids[row] = row_items
-            scores[row] = row_scores
+        if warm_rows.size:
+            scoring_batch_size = self._scoring_batch_size()
+
+            for start in range(0, warm_rows.size, scoring_batch_size):
+                rows = warm_rows[start : start + scoring_batch_size]
+
+                batch_items, batch_scores = self._recommend_users(
+                    internal_ids[rows], n_recommendations
+                )
+
+                item_ids[rows] = batch_items
+                scores[rows] = batch_scores
 
         return Recommendation(item_ids=item_ids, scores=scores)
 

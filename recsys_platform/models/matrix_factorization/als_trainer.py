@@ -11,7 +11,7 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 
 
 class ALSTrainerConfig(MatrixFactorizationTrainerConfig):
-    embedding_size: Annotated[int, Field(gt=0)] = 64
+    embedding_size: Annotated[int, Field(gt=0)] = 128
     regularization: Annotated[float, Field(gt=0)] = 0.01
     alpha: Annotated[float, Field(gt=0)] = 20.0
     iterations: Annotated[int, Field(gt=0)] = 20

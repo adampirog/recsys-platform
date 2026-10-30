@@ -12,9 +12,9 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 
 class BPRTrainerConfig(MatrixFactorizationTrainerConfig):
     embedding_size: Annotated[int, Field(gt=0)] = 64
-    regularization: Annotated[float, Field(gt=0)] = 0.01
     learning_rate: Annotated[float, Field(gt=0)] = 0.01
-    iterations: Annotated[int, Field(gt=0)] = 20
+    regularization: Annotated[float, Field(gt=0)] = 0.01
+    iterations: Annotated[int, Field(gt=0)] = 100
     verify_negative_samples: bool = True
 
 

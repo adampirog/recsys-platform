@@ -6,7 +6,7 @@ from recsys_platform.evaluation.model_evaluation import evaluate_model
 from recsys_platform.models import Recommender
 
 
-def parse_evaluation_args(model_name: str) -> Namespace:
+def get_evaluation_parser(model_name: str) -> ArgumentParser:
     parser = ArgumentParser(description=f"Evaluate a serialized {model_name} model")
 
     parser.add_argument(
@@ -52,7 +52,7 @@ def parse_evaluation_args(model_name: str) -> Namespace:
         help="Display progress bar.",
     )
 
-    return parser.parse_args()
+    return parser
 
 
 def run_evaluation[RecommenderType: Recommender](
