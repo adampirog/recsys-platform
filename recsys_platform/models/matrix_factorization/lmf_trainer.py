@@ -11,6 +11,8 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 
 
 class LMFTrainerConfig(MatrixFactorizationTrainerConfig):
+    """Configuration for implicit-feedback LMF training."""
+
     embedding_size: Annotated[int, Field(gt=0)] = 32
     learning_rate: Annotated[float, Field(gt=0)] = 1.0
     regularization: Annotated[float, Field(gt=0)] = 0.6

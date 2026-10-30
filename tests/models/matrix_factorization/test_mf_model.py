@@ -78,3 +78,35 @@ def test_rejects_incompatible_embedding_dimensions() -> None:
             fallback_predictions=np.array([1, 2], dtype=np.uint32),
             fallback_scores=np.array([0.9, 0.2], dtype=np.float32),
         )
+
+
+def test_predict_across_scoring_batches(
+    model: MatrixFactorizationRecommender, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(model, "_MAX_SCORE_MATRIX_BYTES", 12)
+
+    result = model.predict(RecommendationRequest(user_ids=np.array([10, 20], dtype=np.uint32), k=2))
+
+    npt.assert_array_equal(
+        result.item_ids,
+        np.array(
+            [[100, 300], [200, 300]],
+            dtype=np.uint32,
+        ),
+    )
+
+
+def test_predict_mixed_warm_and_cold_users(model: MatrixFactorizationRecommender) -> None:
+    result = model.predict(
+        RecommendationRequest(user_ids=np.array([10, 999, 20], dtype=np.uint32), k=2)
+    )
+
+    npt.assert_array_equal(
+        result.item_ids,
+        np.array([[100, 300], [100, 200], [200, 300]], dtype=np.uint32),
+    )
+
+    npt.assert_allclose(
+        result.scores,
+        np.array([[1.0, 0.5], [0.9, 0.1], [1.0, 0.5]], dtype=np.float32),
+    )

@@ -11,6 +11,8 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 
 
 class ALSTrainerConfig(MatrixFactorizationTrainerConfig):
+    """Configuration for implicit-feedback ALS training."""
+
     embedding_size: Annotated[int, Field(gt=0)] = 128
     regularization: Annotated[float, Field(gt=0)] = 0.01
     alpha: Annotated[float, Field(gt=0)] = 20.0

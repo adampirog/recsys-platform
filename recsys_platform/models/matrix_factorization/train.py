@@ -13,7 +13,7 @@ ALGORITHMS = {
 
 
 if __name__ == "__main__":
-    parser = get_training_parser("Matrix factorization type recommender")
+    parser = get_training_parser("matrix factorization type recommender")
     parser.add_argument(
         "--algorithm",
         type=str,

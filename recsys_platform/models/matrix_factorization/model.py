@@ -110,7 +110,13 @@ class MatrixFactorizationRecommender(Recommender):
         return item_ids, scores
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
-        """Generate recommendations using MF for known users and fallback for cold users."""
+        """
+        Generate recommendations for known and cold users.
+
+        Known users are ranked by embedding similarity. Unknown users receive the
+        precomputed popularity fallback. The number of returned recommendations is
+        bounded by both the item catalog and stored fallback ranking.
+        """
         n_recommendations = min(request.k, self.item_ids.size)
 
         internal_ids, known = self._lookup_users(request.user_ids)

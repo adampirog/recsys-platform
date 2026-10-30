@@ -44,7 +44,7 @@ def parse_args() -> Namespace:
 
 
 def get_valid_items(df: pl.LazyFrame) -> pl.DataFrame:
-    """Return training items with at least ``MIN_ITEM_INTERACTIONS`` interactions."""
+    """Return items interacted with by at least ``MIN_ITEM_USERS`` training users."""
     return (
         df.filter(pl.col("event_time").is_between(*TRAIN_DATES, closed="left"))
         .group_by("item_id")

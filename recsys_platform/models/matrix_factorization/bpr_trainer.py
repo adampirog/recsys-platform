@@ -11,6 +11,8 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 
 
 class BPRTrainerConfig(MatrixFactorizationTrainerConfig):
+    """Configuration for implicit-feedback BPR training."""
+
     embedding_size: Annotated[int, Field(gt=0)] = 64
     learning_rate: Annotated[float, Field(gt=0)] = 0.01
     regularization: Annotated[float, Field(gt=0)] = 0.01
