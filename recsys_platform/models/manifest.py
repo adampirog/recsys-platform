@@ -1,20 +1,12 @@
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 from recsys_platform.version import __version__
 
 
 MANIFEST_VERSION = "0.2.0"
-
-
-def package_version() -> str:
-    return __version__
-
-
-def manifest_version() -> str:
-    return MANIFEST_VERSION
 
 
 class TrainingMetadata(BaseModel):
@@ -33,8 +25,8 @@ class ModelManifest(BaseModel):
     model_family: str
     training_metadata: TrainingMetadata | None = None
     artifact_version: str
-    package_version: str = Field(default_factory=package_version)
-    manifest_version: str = Field(default_factory=manifest_version)
+    package_version: str = __version__
+    manifest_version: str = MANIFEST_VERSION
 
     @classmethod
     def load(cls, path: str | Path) -> Self:
