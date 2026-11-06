@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, ClassVar, Self
-
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing import ClassVar, Self
 
 from recsys_platform.types import Float32Matrix, UInt32Matrix, UInt32Vector
 from recsys_platform.utils import generate_model_id
@@ -10,29 +9,28 @@ from recsys_platform.utils import generate_model_id
 from .manifest import ModelManifest, TrainingMetadata
 
 
-class RecommendationRequest(BaseModel):
-    """Top-k recommendation request for an ordered batch of users."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+@dataclass(frozen=True, slots=True)
+class RecommendationRequest:
+    """Top-k recommendation query for an ordered batch of users."""
 
     user_ids: UInt32Vector
-    k: Annotated[int, Field(gt=0, strict=True)] = 20
+    k: int = 20
+
+    def __post_init__(self) -> None:
+        if self.k <= 0:
+            raise ValueError("k must be greater than 0.")
 
 
-class Recommendation(BaseModel):
-    """Ranked item IDs and scores aligned row-wise with request users."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+@dataclass(frozen=True, slots=True)
+class Recommendation:
+    """Ranked item IDs and scores aligned row-wise with requested users."""
 
     item_ids: UInt32Matrix
     scores: Float32Matrix
 
-    @model_validator(mode="after")
-    def validate_shapes(self) -> Self:
+    def __post_init__(self) -> None:
         if self.item_ids.shape != self.scores.shape:
-            raise ValueError("item_ids and scores must have identical shapes")
-
-        return self
+            raise ValueError("item_ids and scores must have identical shapes.")
 
 
 class Recommender(ABC):

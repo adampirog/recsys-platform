@@ -1,29 +1,24 @@
 from collections.abc import Iterator
+from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Self
 
 import numpy as np
 import polars as pl
-from pydantic import BaseModel, ConfigDict, model_validator
 
 from recsys_platform.types import UInt32Vector
 
 
-class TargetBatch(BaseModel):
+@dataclass(frozen=True, slots=True)
+class TargetBatch:
     """Ground-truth relevant items aligned with a batch of user IDs."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 
     user_ids: UInt32Vector
     relevant_items: list[UInt32Vector]
 
-    @model_validator(mode="after")
-    def validate_batch_size(self) -> Self:
+    def __post_init__(self) -> None:
         if len(self.relevant_items) != self.user_ids.size:
-            raise ValueError("relevant_items must contain one array for each user_id")
-
-        return self
+            raise ValueError("relevant_items must contain one array for each user_id.")
 
 
 class RecommenderDataset:
@@ -44,7 +39,7 @@ class RecommenderDataset:
 
     @cached_property
     def n_targets(self) -> int:
-        "Return the number of logical evaluation targets"
+        """Return the number of logical evaluation targets."""
         return self.data.select(pl.col("user_id").n_unique()).collect(engine="streaming").item()
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
