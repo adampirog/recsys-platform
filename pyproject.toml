@@ -29,7 +29,6 @@ serving = [
 
 taobao-data = [
     "recsys-platform[data]",
-    "polars>=1.44.2",
     "tzdata",
 ]
 

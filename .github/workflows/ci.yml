@@ -72,6 +72,39 @@ jobs:
             --retry-all-errors \
             http://localhost:8000/health
 
+      - name: Test inference dependencies
+        run: |
+          docker exec -i recsys-platform-ci python - <<'PY'
+          from importlib.util import find_spec
+
+          import numpy as np
+
+          from recsys_platform.models.popularity import PopularityRecommender
+
+          # Ensure training dependencies are absent.
+          for name in ("polars", "scipy", "implicit"):
+              assert find_spec(name) is None, f"{name} leaked into inference image"
+
+          # Create a popularity artifact.
+          PopularityRecommender(
+              model_id="smoke-pop",
+              item_ids=np.array([10, 20], dtype=np.uint32),
+              scores=np.array([1.0, 0.5], dtype=np.float32),
+          ).save("/models/smoke-pop")
+
+          PY
+
+          # Discover the new artifacts.
+          curl -fsS -X POST \
+            http://localhost:8000/admin/models/refresh
+
+          # Test popularity inference.
+          curl -fsS -X POST \
+            http://localhost:8000/v1/models/smoke-pop/recommendations \
+            -H "Content-Type: application/json" \
+            -d '{"user_ids": [1], "k": 2}' \
+            | python -c 'import json, sys; assert json.load(sys.stdin)["item_ids"] == [[10, 20]]'
+
       - name: Show container logs on failure
         if: failure()
         run: docker logs recsys-platform-ci || true
