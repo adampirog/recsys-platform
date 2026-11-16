@@ -14,10 +14,13 @@ dependencies = [
     "pydantic>=2.12",
     "prettytable>=3.18",
     "tqdm>=4.67",
-    "polars>=1.44.2",
 ]
 
 [project.optional-dependencies]
+
+data = [
+    "polars>=1.44.2",
+]
 
 serving = [
     "fastapi>=0.140",
@@ -25,16 +28,21 @@ serving = [
 ]
 
 taobao-data = [
+    "recsys-platform[data]",
+    "polars>=1.44.2",
     "tzdata",
 ]
 
 popularity-inference = []
-popularity-training = []
+popularity-training = [
+    "recsys-platform[data]",
+]
 
 matrix-factorization-inference = []
 matrix-factorization-training = [
     "scipy>=1.18",
     "implicit>=0.7.3",
+    "recsys-platform[data]",
 ]
 
 all = [
