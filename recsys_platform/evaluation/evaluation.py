@@ -140,22 +140,13 @@ def evaluate_batch_sums(
     y_pred = y_pred[:, :max_k]
     n_users, n_predictions = y_pred.shape
 
-    if len(y_true) != n_users:
-        raise ValueError("y_true and y_pred must contain the same number of users.")
-
     # Relevance is binary.
-    relevant = [np.unique(items) for items in y_true]
-    relevant_counts = np.fromiter((items.size for items in relevant), dtype=np.int64, count=n_users)
-
-    if n_predictions > 1:
-        sorted_predictions = np.sort(y_pred, axis=1)
-        if np.any(np.diff(sorted_predictions, axis=1) == 0):
-            raise ValueError("Predictions contain duplicate item IDs.")
+    relevant_counts = np.fromiter((items.size for items in y_true), dtype=np.int64, count=n_users)
 
     n_relevant = int(relevant_counts.sum())
 
     if n_relevant:
-        relevant_items = np.concatenate(relevant).astype(np.uint64, copy=False)
+        relevant_items = np.concatenate(y_true).astype(np.uint64, copy=False)
         relevant_users = np.repeat(np.arange(n_users, dtype=np.uint64), relevant_counts)
         relevant_keys = (relevant_users << 32) | relevant_items
     else:

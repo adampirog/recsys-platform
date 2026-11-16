@@ -12,19 +12,12 @@ requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.5",
     "pydantic>=2.12",
-]
-
-[project.optional-dependencies]
-
-data = [
+    "prettytable>=3.18",
+    "tqdm>=4.67",
     "polars>=1.44.2",
 ]
 
-evaluation = [
-    "recsys-platform[data]",
-    "prettytable>=3.18",
-    "tqdm>=4.67",
-]
+[project.optional-dependencies]
 
 serving = [
     "fastapi>=0.140",
@@ -32,20 +25,14 @@ serving = [
 ]
 
 taobao-data = [
-    "recsys-platform[data]",
     "tzdata",
 ]
 
 popularity-inference = []
-
-popularity-training = [
-    "recsys-platform[popularity-inference,evaluation]",
-]
+popularity-training = []
 
 matrix-factorization-inference = []
-
 matrix-factorization-training = [
-    "recsys-platform[matrix-factorization-inference,evaluation]",
     "scipy>=1.18",
     "implicit>=0.7.3",
 ]

@@ -28,10 +28,6 @@ class Recommendation:
     item_ids: UInt32Matrix
     scores: Float32Matrix
 
-    def __post_init__(self) -> None:
-        if self.item_ids.shape != self.scores.shape:
-            raise ValueError("item_ids and scores must have identical shapes.")
-
 
 class Recommender(ABC):
     """Base interface for serializable recommendation models."""
