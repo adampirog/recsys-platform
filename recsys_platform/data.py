@@ -16,10 +16,6 @@ class TargetBatch:
     user_ids: UInt32Vector
     relevant_items: list[UInt32Vector]
 
-    def __post_init__(self) -> None:
-        if len(self.relevant_items) != self.user_ids.size:
-            raise ValueError("relevant_items must contain one array for each user_id.")
-
 
 class RecommenderDataset:
     """

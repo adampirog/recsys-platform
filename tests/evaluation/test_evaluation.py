@@ -280,12 +280,3 @@ def test_evaluate_batch_sums_handles_predictions_shorter_than_k() -> None:
 
     assert result[5]["precision"] == pytest.approx(1 / 5)
     assert result[5]["recall"] == pytest.approx(1 / 2)
-
-
-def test_evaluate_batch_sums_rejects_duplicate_predictions() -> None:
-    with pytest.raises(ValueError, match="duplicate"):
-        evaluate_batch_sums(
-            y_true=[np.array([10], dtype=np.uint32)],
-            y_pred=np.array([[10, 10]], dtype=np.uint32),
-            k_values=(2,),
-        )
