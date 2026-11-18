@@ -15,7 +15,10 @@ class PopularityTrainerConfig(TrainerConfig):
 
 
 class PopularityTrainer(Trainer[PopularityRecommender, PopularityTrainerConfig]):
-    """Train a global popularity recommender from interaction counts."""
+    """Rank items by interaction count, breaking ties by ascending item ID.
+
+    Scores are counts divided by the maximum item count.
+    """
 
     def __init__(self, config: PopularityTrainerConfig | None = None) -> None:
         super().__init__(config=config or PopularityTrainerConfig())

@@ -215,8 +215,6 @@ def test_mixed_builtin_and_custom_metrics_use_fallback(monkeypatch) -> None:
 
 
 def test_builtin_metrics_use_optimized_path(monkeypatch, ranking_case) -> None:
-    """Built-in multi-K evaluation should not call individual metric functions."""
-
     def fail(*args, **kwargs):
         pytest.fail("Individual metric function was called.")
 

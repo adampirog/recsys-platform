@@ -12,7 +12,6 @@ from recsys_platform.serving.registry import create_default_registry
 
 
 def test_train_save_and_serve_popularity_model(tmp_path: Path) -> None:
-    """Train a model artifact and serve it through the HTTP API."""
     data_path = tmp_path / "interactions.parquet"
 
     pl.DataFrame(

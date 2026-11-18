@@ -33,7 +33,7 @@ def parse_args() -> Namespace:
 
 
 def scan_dataset(path: str | Path) -> pl.LazyFrame:
-    """Scan the raw Taobao CSV as a lazy frame."""
+    """Scan a headerless Taobao UserBehavior CSV."""
     return pl.scan_csv(
         path,
         has_header=False,
@@ -49,7 +49,10 @@ def scan_dataset(path: str | Path) -> pl.LazyFrame:
 
 
 def clean_dataset(df: pl.LazyFrame) -> pl.LazyFrame:
-    """Clean, type, and time-filter raw Taobao interactions."""
+    """Drop incomplete interactions, normalize event types and convert timestamps.
+
+    Keep events within the configured half-open window in Asia/Shanghai time.
+    """
     return (
         df.drop_nulls(["user_id", "item_id", "category_id", "event_type", "timestamp"])
         .with_columns(

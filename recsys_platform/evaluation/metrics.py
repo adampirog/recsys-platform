@@ -1,3 +1,10 @@
+"""Ranking metrics for one user.
+
+Inputs are one-dimensional item ID sequences, with predictions ordered
+from highest to lowest rank. Relevance is binary; repeated relevant IDs
+are deduplicated and duplicate predictions within k are rejected.
+"""
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -6,7 +13,11 @@ ID_DTYPE = np.uint32
 
 
 def _prepare_inputs(y_true: ArrayLike, y_pred: ArrayLike, k: int) -> tuple[np.ndarray, np.ndarray]:
-    """Convert metric inputs to validated NumPy arrays."""
+    """Prepare one user's binary relevance and ranked predictions.
+
+    Inputs must be one-dimensional uint32-compatible item IDs. Relevant IDs
+    are deduplicated; duplicate predictions within the positive cutoff are rejected.
+    """
     if k <= 0:
         raise ValueError("k must be greater than 0.")
 
@@ -29,8 +40,6 @@ def _prepare_inputs(y_true: ArrayLike, y_pred: ArrayLike, k: int) -> tuple[np.nd
 
 
 def hit_rate(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
-    """Return HitRate@k for a ranked prediction list."""
-
     y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_true_array.size == 0:
@@ -42,7 +51,7 @@ def hit_rate(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
 
 
 def precision(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
-    """Return Precision@k for a ranked prediction list."""
+    """Compute precision using k as the denominator, even for shorter rankings."""
 
     y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
@@ -55,16 +64,6 @@ def precision(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
 
 
 def recall(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
-    """Return the fraction of y_true items retrieved in the top-k.
-
-    Args:
-        y_true: Ground-truth y_true item IDs.
-        y_pred: Item IDs ordered from most to least relevant.
-        k: Number of highest-ranked predictions to consider.
-
-    Returns:
-        Recall@k in the range [0, 1].
-    """
     y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_true_array.size == 0:
@@ -76,19 +75,7 @@ def recall(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
 
 
 def ndcg(y_true: ArrayLike, y_pred: ArrayLike, k: int = 10) -> float:
-    """Compute binary Normalized Discounted Cumulative Gain at k.
-
-    Relevant items have gain 1 and non-relevant items gain 0. Relevant
-    items appearing higher in the predicted ranking receive more weight.
-
-    Args:
-        y_true: Ground-truth y_true item IDs.
-        y_pred: Item IDs ordered from most to least relevant.
-        k: Number of highest-ranked predictions to consider.
-
-    Returns:
-        NDCG@k in the range [0, 1].
-    """
+    """Compute NDCG with binary relevance and an ideal ranking of up to k relevant items."""
     y_true_array, y_pred_array = _prepare_inputs(y_true, y_pred, k)
 
     if y_true_array.size == 0:

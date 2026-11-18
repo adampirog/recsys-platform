@@ -44,6 +44,10 @@ def run_training[RecommenderType: Recommender, ConfigType: TrainerConfig](
     config_cls: type[ConfigType],
     trainer_cls: type[Trainer[RecommenderType, ConfigType]],
 ) -> None:
+    """Train and save a model in a model-ID subdirectory of the output root.
+
+    If validation data is supplied, also save evaluation.txt alongside the model.
+    """
     config = config_cls.load(args.training_config)
     trainer = trainer_cls(config)
 

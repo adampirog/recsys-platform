@@ -11,8 +11,6 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 
 
 class LMFTrainerConfig(MatrixFactorizationTrainerConfig):
-    """Configuration for implicit-feedback LMF training."""
-
     embedding_size: Annotated[int, Field(gt=0)] = 32
     learning_rate: Annotated[float, Field(gt=0)] = 1.0
     regularization: Annotated[float, Field(gt=0)] = 0.6
@@ -21,8 +19,6 @@ class LMFTrainerConfig(MatrixFactorizationTrainerConfig):
 
 
 class LMFTrainer(MatrixFactorizationTrainer[LMFTrainerConfig]):
-    """Train a matrix-factorization recommender using implicit-feedback LMF."""
-
     def __init__(self, config: LMFTrainerConfig | None = None) -> None:
         super().__init__(config=config or LMFTrainerConfig())
 

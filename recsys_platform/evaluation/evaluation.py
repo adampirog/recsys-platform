@@ -13,23 +13,15 @@ OPTIMIZED_METRICS = frozenset(("precision", "recall", "hit_rate", "ndcg"))
 
 @lru_cache
 def _discounts(k: int) -> np.ndarray:
-    """Return cached logarithmic ranking discounts up to ``k``."""
     return 1.0 / np.log2(np.arange(2, k + 2))
 
 
 def evaluate(
     y_true: ArrayLike, y_pred: ArrayLike, k: int = 10, metrics: Collection[str] = DEFAULT_METRICS
 ) -> dict[str, float]:
-    """Evaluate one ranked recommendation list at a single cutoff.
+    """Evaluate a single user's ranked item IDs against binary relevance.
 
-    Args:
-        y_true: Relevant item IDs.
-        y_pred: Ranked predicted item IDs.
-        k: Ranking cutoff.
-        metrics: Metric names to calculate.
-
-    Returns:
-        Metric values keyed by name.
+    Metric names must resolve to functions in the metrics module.
     """
     return {
         metric: getattr(metrics_module, metric)(
@@ -47,16 +39,9 @@ def evaluate_multiple(
     k_values: Iterable[int],
     metrics: Collection[str] = DEFAULT_METRICS,
 ) -> dict[int, dict[str, float]]:
-    """Evaluate one ranked recommendation list at multiple cutoffs.
+    """Evaluate a single user's ranking at distinct, positive cutoffs.
 
-    Args:
-        y_true: Relevant item IDs.
-        y_pred: Ranked predicted item IDs.
-        k_values: Ranking cutoffs.
-        metrics: Metric names to calculate.
-
-    Returns:
-        Metric values keyed by cutoff.
+    Using only built-in metrics enables a shared evaluation pass.
     """
     k_values = tuple(sorted(set(k_values)))
 
@@ -82,9 +67,9 @@ def evaluate_multiple_optimized(
     k_values: tuple[int, ...],
     metrics: tuple[str, ...] = tuple(OPTIMIZED_METRICS),
 ) -> dict[int, dict[str, float]]:
-    """Evaluate built-in ranking metrics at multiple cutoffs in one pass.
+    """Evaluate built-in metrics at multiple cutoffs.
 
-    Only metrics in ``OPTIMIZED_METRICS`` are supported.
+    Cutoffs must be nonempty and positive; only OPTIMIZED_METRICS are supported.
     """
     max_k = max(k_values)
 
@@ -134,7 +119,12 @@ def evaluate_multiple_optimized(
 def evaluate_batch_sums(
     y_true: list[np.ndarray], y_pred: np.ndarray, k_values: tuple[int, ...]
 ) -> dict[int, dict[str, float]]:
-    """Return summed ranking metrics for a batch of users."""
+    """Sum per-user ranking metrics at each cutoff, without averaging.
+
+    Relevant item arrays and prediction rows must align by user and contain
+    unique uint32-compatible IDs. Predictions must be ranked; cutoffs must
+    be nonempty and positive.
+    """
 
     max_k = max(k_values)
     y_pred = y_pred[:, :max_k]

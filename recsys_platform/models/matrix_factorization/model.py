@@ -14,7 +14,12 @@ from recsys_platform.types import Float32Matrix, Float32Vector, UInt32Vector
 
 
 class MatrixFactorizationRecommender(Recommender):
-    """Recommend items by user-item embedding similarity with a popularity fallback."""
+    """Recommend items by user-item embedding dot product with a popularity fallback.
+
+    Embedding rows must align with their corresponding IDs. User IDs must be
+    strictly increasing; fallback items and scores must be aligned, nonempty
+    and already ranked.
+    """
 
     MODEL_FAMILY = "matrix_factorization"
     ARTIFACT_VERSION = "0.1.0"
@@ -63,21 +68,14 @@ class MatrixFactorizationRecommender(Recommender):
             raise ValueError("fallback predictions must not be empty.")
 
     def _scoring_batch_size(self) -> int:
-        """Return the number of users that fit in the score-matrix memory budget."""
         bytes_per_user = self.item_embeddings.shape[0] * self.item_embeddings.dtype.itemsize
 
         return max(1, self._MAX_SCORE_MATRIX_BYTES // bytes_per_user)
 
     def _lookup_users(self, user_ids: UInt32Vector) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Map external user IDs to embedding row indices.
+        """Map external user IDs to embedding row indices.
 
-        Args:
-            user_ids: External user IDs to look up.
-
-        Returns:
-            A pair containing the candidate row indices in ``user_embeddings``
-            and a boolean mask indicating which user IDs are known to the model.
+        Only indices selected by the returned boolean known-user mask are valid.
         """
         internal_indices = np.searchsorted(self.user_ids, user_ids)
 
@@ -89,7 +87,6 @@ class MatrixFactorizationRecommender(Recommender):
         return internal_indices, known
 
     def _recommend_users(self, user_indices: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
-        """Generate top-k recommendations for a batch of known users."""
         batch_scores = self.user_embeddings[user_indices] @ self.item_embeddings.T
 
         batch_size = user_indices.size
@@ -110,12 +107,10 @@ class MatrixFactorizationRecommender(Recommender):
         return item_ids, scores
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
-        """
-        Generate recommendations for known and cold users.
+        """Rank known users by embedding dot product and use the fallback for unknown users.
 
-        Known users are ranked by embedding similarity. Unknown users receive the
-        precomputed popularity fallback. The number of returned recommendations is
-        bounded by both the item catalog and stored fallback ranking.
+        The entire batch is capped at the catalog size and, if any user is
+        unknown, at the fallback ranking length.
         """
         n_recommendations = min(request.k, self.item_ids.size)
 

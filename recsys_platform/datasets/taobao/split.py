@@ -58,7 +58,7 @@ def get_valid_items(df: pl.LazyFrame) -> pl.DataFrame:
 def get_subset(
     df: pl.LazyFrame, dates: tuple[datetime, datetime], valid_items: pl.DataFrame
 ) -> pl.LazyFrame:
-    """Filter interactions to a date range and the supported item set."""
+    """Filter to supported items within the half-open date range."""
     return df.filter(pl.col("event_time").is_between(*dates, closed="left")).join(
         valid_items.lazy(), on="item_id", how="semi"
     )

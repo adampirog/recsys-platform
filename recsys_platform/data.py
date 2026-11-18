@@ -11,18 +11,19 @@ from recsys_platform.types import UInt32Vector
 
 @dataclass(frozen=True, slots=True)
 class TargetBatch:
-    """Ground-truth relevant items aligned with a batch of user IDs."""
+    """Ground-truth items grouped by user.
+
+    Each relevant_items entry corresponds to the user ID at the same position.
+    """
 
     user_ids: UInt32Vector
     relevant_items: list[UInt32Vector]
 
 
 class RecommenderDataset:
-    """
-    Parquet-backed user-item interaction dataset.
+    """Read a Parquet-backed interaction dataset.
 
-    Requires ``user_id`` and ``item_id`` columns. Evaluation targets contain
-    the unique items associated with each user.
+    Requires user_id and item_id columns containing uint32-compatible IDs.
     """
 
     def __init__(self, path: str | Path) -> None:
@@ -30,16 +31,15 @@ class RecommenderDataset:
 
     @property
     def data(self) -> pl.LazyFrame:
-        """Return the interaction dataset as a lazy Polars frame."""
         return pl.scan_parquet(self.path)
 
     @cached_property
     def n_targets(self) -> int:
-        """Return the number of logical evaluation targets."""
+        """Count distinct users, not interaction rows."""
         return self.data.select(pl.col("user_id").n_unique()).collect(engine="streaming").item()
 
     def iter_targets(self, batch_size: int) -> Iterator[TargetBatch]:
-        """Yield per-user unique relevant items in batches."""
+        """Yield unique relevant items per user in batches without guaranteed user order."""
 
         targets = self.data.group_by("user_id").agg(
             pl.col("item_id").unique().alias("relevant_items")

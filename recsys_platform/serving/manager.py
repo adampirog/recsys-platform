@@ -9,8 +9,6 @@ from .registry import ModelRegistry
 
 @dataclass(frozen=True, slots=True)
 class ModelInfo:
-    """Serving metadata for a discovered model artifact."""
-
     model_id: str
     model_family: str
     path: str
@@ -18,7 +16,7 @@ class ModelInfo:
 
 
 class ServableModel:
-    """Lazy, thread-safe wrapper around one serialized model artifact."""
+    """Wrap a serialized model artifact with thread-safe lazy loading."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path).resolve()
@@ -49,12 +47,7 @@ class ServableModel:
         )
 
     def load(self, model_class: type[Recommender]) -> Recommender:
-        """
-        Load and cache the model, returning the cached instance on later calls.
-
-        Args:
-            model_class: Recommender class used to load the artifact.
-        """
+        """Load once and return the cached instance on subsequent calls."""
         with self._lock:
             if self._model is None:
                 self._model = model_class.load(self.path)
@@ -62,7 +55,7 @@ class ServableModel:
             return self._model
 
     def unload(self) -> None:
-        """Release the cached model while keeping the artifact discoverable."""
+        """Release the cached model without removing its artifact."""
         with self._lock:
             self._model = None
 
@@ -77,11 +70,9 @@ class ModelManager:
         self._lock = Lock()
 
     def discover(self, path: str | Path) -> tuple[str, ...]:
-        """
-        Discover previously unseen model artifacts below a directory.
+        """Recursively register previously unseen model artifacts by ID.
 
-        Returns:
-            IDs of newly discovered models.
+        Return sorted IDs of newly discovered models. Existing IDs are not replaced.
         """
         new = set()
         for manifest_path in Path(path).rglob("MANIFEST.json"):
@@ -98,12 +89,9 @@ class ModelManager:
         return tuple(sorted(new))
 
     def load(self, model_id: str) -> Recommender:
-        """
-        Load and cache a discovered model by ID.
+        """Load and cache a discovered model by ID.
 
-        Raises:
-            KeyError: If the model ID is unknown.
-            RuntimeError: If its model family is not registered.
+        An unknown ID raises KeyError; an unregistered model family raises RuntimeError.
         """
         with self._lock:
             servable = self._models[model_id]
@@ -118,7 +106,7 @@ class ModelManager:
         return servable.load(model_class)
 
     def unload(self, model_id: str) -> None:
-        """Unload model state while keeping the artifact registered."""
+        """Release a cached model without unregistering it; unknown IDs are ignored."""
         with self._lock:
             model = self._models.get(model_id)
 
@@ -126,14 +114,13 @@ class ModelManager:
             model.unload()
 
     def is_loaded(self, model_id: str) -> bool:
-        """Return whether the requested model is currently loaded."""
+        """Return False for unknown models as well as unloaded models."""
         with self._lock:
             model = self._models.get(model_id)
 
         return model.is_loaded if model is not None else False
 
     def available_models(self) -> tuple[ModelInfo, ...]:
-        """Return metadata for all discovered models."""
         with self._lock:
             models = tuple(self._models.values())
 

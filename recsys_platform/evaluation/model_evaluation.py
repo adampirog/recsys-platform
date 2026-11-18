@@ -18,16 +18,10 @@ def evaluate_model(
     batch_size: int = 10_000,
     verbose: bool = False,
 ) -> EvaluationResult:
-    """Evaluate a recommender using macro-averaged per-user ranking metrics.
+    """Macro-average ranking metrics across distinct users in the evaluation dataset.
 
-    Args:
-        model: Recommender to evaluate.
-        data: Dataset providing evaluation targets.
-        k_values: Ranking cutoffs.
-        batch_size: Users per prediction batch.
-
-    Returns:
-        Metrics averaged across evaluated users.
+    Each batch is predicted once at the largest cutoff. Empty evaluation
+    datasets are rejected.
     """
     k_values = tuple(sorted(set(k_values)))
 

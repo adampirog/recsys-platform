@@ -15,8 +15,6 @@ from recsys_platform.models import Recommendation, RecommendationRequest, Recomm
 
 
 class FakeDataset(RecommenderDataset):
-    """In-memory dataset for testing model evaluation."""
-
     def __init__(self, batches: list[TargetBatch] | None = None) -> None:
         self.batches = (
             batches
@@ -48,8 +46,6 @@ class FakeDataset(RecommenderDataset):
 
 
 class FakeRecommender(Recommender):
-    """Deterministic recommender used to verify evaluation behavior."""
-
     MODEL_FAMILY = "fake"
 
     def __init__(self, model_id: str | None = None) -> None:

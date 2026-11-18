@@ -8,8 +8,6 @@ from recsys_platform.models import Recommender
 
 @dataclass(frozen=True, slots=True)
 class ModelSpec:
-    """Import specification for a recommender implementation."""
-
     module: str
     class_name: str
 
@@ -24,13 +22,9 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
         self._lock = RLock()
 
     def register(self, model_family: str, *, module: str, class_name: str) -> None:
-        """
-        Register or replace a recommender implementation for a model family.
+        """Register or replace the implementation for a model family.
 
-        Args:
-            model_family: Family identifier stored in model manifests.
-            module: Module containing the recommender class.
-            class_name: Recommender class name.
+        Replacing a registration invalidates its cached class.
         """
         spec = ModelSpec(module=module, class_name=class_name)
 
@@ -39,7 +33,7 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
             self._model_types.pop(model_family, None)
 
     def __getitem__(self, model_family: str) -> type[Recommender]:
-        """Resolve and cache the recommender class for a model family."""
+        """Resolve and cache a recommender class on first lookup."""
         with self._lock:
             if model_family in self._model_types:
                 return self._model_types[model_family]
@@ -64,8 +58,6 @@ class ModelRegistry(Mapping[str, type[Recommender]]):
 
 
 def create_default_registry() -> ModelRegistry:
-    """Create a registry containing all built-in recommender families."""
-
     registry = ModelRegistry()
 
     registry.register(

@@ -11,8 +11,6 @@ from .trainer import MatrixFactorizationTrainer, MatrixFactorizationTrainerConfi
 
 
 class BPRTrainerConfig(MatrixFactorizationTrainerConfig):
-    """Configuration for implicit-feedback BPR training."""
-
     embedding_size: Annotated[int, Field(gt=0)] = 64
     learning_rate: Annotated[float, Field(gt=0)] = 0.01
     regularization: Annotated[float, Field(gt=0)] = 0.01
@@ -21,8 +19,6 @@ class BPRTrainerConfig(MatrixFactorizationTrainerConfig):
 
 
 class BPRTrainer(MatrixFactorizationTrainer[BPRTrainerConfig]):
-    """Train a matrix-factorization recommender using implicit-feedback BPR."""
-
     def __init__(self, config: BPRTrainerConfig | None = None) -> None:
         super().__init__(config=config or BPRTrainerConfig())
 

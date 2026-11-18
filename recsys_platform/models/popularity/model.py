@@ -14,7 +14,10 @@ from recsys_platform.types import Float32Vector, UInt32Vector
 
 
 class PopularityRecommender(Recommender):
-    """Recommend the same globally popular items to every user."""
+    """Recommend the same globally popular items to every user.
+
+    Item IDs and scores must be aligned and supplied in descending ranking order.
+    """
 
     MODEL_FAMILY = "popularity"
     ARTIFACT_VERSION = "0.1.0"
@@ -36,7 +39,7 @@ class PopularityRecommender(Recommender):
             raise ValueError("item_ids and scores must have identical shapes.")
 
     def predict(self, request: RecommendationRequest) -> Recommendation:
-        """Return the top globally popular items for each requested user."""
+        """Return broadcast, read-only arrays capped at the number of stored items."""
 
         n_recommendations = min(request.k, self.item_ids.size)
 

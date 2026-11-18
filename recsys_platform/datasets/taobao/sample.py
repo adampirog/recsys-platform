@@ -45,7 +45,10 @@ def parse_args() -> Namespace:
 
 
 def resolve_sample_size(n_users: int, sample_size: float) -> int:
-    """Resolve an absolute or fractional user sample size."""
+    """Resolve a user sample size, interpreting values strictly between 0 and 1 as fractions.
+
+    The result is truncated to an integer and must be between 1 and n_users.
+    """
     if 0 < sample_size < 1:
         resolved = int(sample_size * n_users)
     else:

@@ -13,7 +13,10 @@ from .model import MatrixFactorizationRecommender
 
 
 class MatrixFactorizationTrainerConfig(TrainerConfig):
-    """Shared configuration for implicit-feedback matrix-factorization trainers."""
+    """Configure the shared matrix-factorization training parameters.
+
+    n_jobs follows scikit-learn conventions for negative values.
+    """
 
     fallback_items: Annotated[int, Field(gt=0)] = 20
     random_state: int | None = None
@@ -25,11 +28,10 @@ class MatrixFactorizationTrainerConfig(TrainerConfig):
 
     @staticmethod
     def _n_jobs_to_num_threads(n_jobs: int) -> int:
-        """
-        Translate scikit-style ``n_jobs`` to implicit's ``num_threads``.
+        """Translate scikit-style n_jobs to implicit's thread count.
 
-        ``n_jobs=-1`` uses all available CPUs, while implicit represents
-        this as ``num_threads=0``.
+        -1 becomes 0 (all available CPUs). Values below -1 reserve CPUs,
+        with a minimum of one thread.
         """
         if n_jobs == -1:
             return 0
@@ -44,12 +46,13 @@ class MatrixFactorizationTrainerConfig(TrainerConfig):
 class MatrixFactorizationTrainer[ConfigType: MatrixFactorizationTrainerConfig](
     Trainer[MatrixFactorizationRecommender, ConfigType]
 ):
-    """Base trainer for matrix-factorization recommenders."""
-
     def _get_fallback_predictions(
         self, user_items: csr_matrix, item_ids: UInt32Vector, max_items: int = 20
     ) -> tuple[UInt32Vector, Float32Vector]:
-        """Build a top-popularity fallback ranking from training interaction counts."""
+        """Rank fallback items by interaction count, breaking ties by ascending item ID.
+
+        Scores are counts divided by the maximum item count.
+        """
 
         counts = np.asarray(user_items.sum(axis=0)).ravel().astype(np.float32, copy=False)
 
@@ -63,7 +66,10 @@ class MatrixFactorizationTrainer[ConfigType: MatrixFactorizationTrainerConfig](
     def _build_user_item_matrix(
         self, data: RecommenderDataset
     ) -> tuple[csr_matrix, UInt32Vector, UInt32Vector]:
-        """Build a CSR user-item interaction-count matrix and external ID mappings."""
+        """Build a user-by-item matrix of interaction counts.
+
+        Rows and columns correspond to the returned sorted user and item IDs.
+        """
 
         interactions = (
             data.data.group_by("user_id", "item_id")
