@@ -6,7 +6,7 @@ from prettytable import PrettyTable
 
 
 class EvaluationResult(UserDict):
-    """Mapping of ranking cutoffs to metric values."""
+    """Map ranking cutoffs to dictionaries of metric names and values."""
 
     def __str__(self) -> str:
         if not self.data:
@@ -24,7 +24,7 @@ class EvaluationResult(UserDict):
         return table.get_string()
 
     def save(self, path: str | Path) -> None:
-        """Save as ``.txt`` or ``.json``, inferred from the file extension."""
+        """Save as a formatted table (.txt) or JSON, determined by the file extension."""
 
         path = Path(path)
         if path.suffix == ".txt":

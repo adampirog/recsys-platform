@@ -26,15 +26,7 @@ API_VERSION = "0.1.0"
 
 
 def create_app(manager: ModelManager, model_path: Path) -> FastAPI:
-    """Create the serving API for a model manager and artifact directory.
-
-    Args:
-        manager: Model lifecycle manager.
-        model_path: Root directory scanned by refresh operations.
-
-    Returns:
-        Configured FastAPI application.
-    """
+    """Create the serving API; model_path is the root scanned by refresh operations."""
     app = FastAPI(title="RecSys Platform", version=API_VERSION)
     model_path = model_path.resolve()
 
@@ -118,7 +110,6 @@ def parse_args() -> Namespace:
 
 
 def main() -> None:
-    """Discover available models and start the API server."""
     args = parse_args()
 
     registry = create_default_registry()

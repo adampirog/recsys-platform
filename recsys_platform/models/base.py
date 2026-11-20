@@ -11,8 +11,6 @@ from .manifest import ModelManifest, TrainingMetadata
 
 @dataclass(frozen=True, slots=True)
 class RecommendationRequest:
-    """Top-k recommendation query for an ordered batch of users."""
-
     user_ids: UInt32Vector
     k: int = 20
 
@@ -23,14 +21,14 @@ class RecommendationRequest:
 
 @dataclass(frozen=True, slots=True)
 class Recommendation:
-    """Ranked item IDs and scores aligned row-wise with requested users."""
+    """Ranked item IDs and model-specific scores aligned row-wise by user."""
 
     item_ids: UInt32Matrix
     scores: Float32Matrix
 
 
 class Recommender(ABC):
-    """Base interface for serializable recommendation models."""
+    """Base interface for models with family-specific artifacts and a shared manifest."""
 
     MODEL_FAMILY: ClassVar[str]
     ARTIFACT_VERSION: ClassVar[str]
@@ -47,17 +45,17 @@ class Recommender(ABC):
 
     @abstractmethod
     def predict(self, request: RecommendationRequest) -> Recommendation:
-        """
-        Generate recommendations for a batch of users.
+        """Return up to k ranked items per user.
 
-        Returned rows preserve the order of ``request.user_ids``.
+        Rows follow request.user_ids. Item IDs and scores are aligned, with
+        scores ordered from highest to lowest and interpreted per model.
         """
 
     @abstractmethod
     def _save(self, path: Path) -> None: ...
 
     def save(self, path: str | Path) -> None:
-        """Serialize the fitted model to disk."""
+        """Save model artifacts and their manifest into a directory, creating it if needed."""
 
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
@@ -77,7 +75,7 @@ class Recommender(ABC):
 
     @classmethod
     def load(cls, path: str | Path) -> Self:
-        """Load a serialized Recommender from disk."""
+        """Load an artifact directory using a class matching its manifest's model family."""
 
         path = Path(path)
         manifest = ModelManifest.load(path / "MANIFEST.json")

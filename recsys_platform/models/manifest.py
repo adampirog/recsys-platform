@@ -17,8 +17,6 @@ class TrainingMetadata(BaseModel):
 
 
 class ModelManifest(BaseModel):
-    """Metadata required to identify and load a serialized model."""
-
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     model_id: str

@@ -9,8 +9,6 @@ from recsys_platform.models import Recommender, TrainingMetadata
 
 
 class TrainerConfig(BaseModel):
-    """Configuration used to train a recommender."""
-
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     @classmethod
@@ -24,14 +22,12 @@ class TrainerConfig(BaseModel):
 
 
 class Trainer[RecommenderType: Recommender, ConfigType: TrainerConfig](ABC):
-    """Train a model-specific recommender."""
-
     def __init__(self, config: ConfigType) -> None:
         self.config = config
 
     @abstractmethod
     def fit(self, data: RecommenderDataset) -> RecommenderType:
-        """Fit a recommender from the training dataset."""
+        """Fit a recommender without persisting its artifacts."""
 
     def get_metadata(self) -> TrainingMetadata:
         return TrainingMetadata(
